@@ -1,0 +1,87 @@
+:root {
+  --bg: #f7f6f3;
+  --panel: #ffffff;
+  --text: #1f1e1c;
+  --muted: #6b6862;
+  --accent: #c96442;
+  --border: #e4e1da;
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1b19;
+    --panel: #262522;
+    --text: #ecebe7;
+    --muted: #a19e96;
+    --border: #3a3834;
+  }
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+
+.app { display: flex; height: 100vh; }
+
+.sidebar {
+  width: 200px;
+  padding: 24px 12px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sidebar h1 { font-size: 16px; margin: 0 8px 16px; }
+.sidebar button {
+  text-align: left;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  cursor: pointer;
+}
+.sidebar button.active { background: var(--panel); font-weight: 600; }
+
+.content { flex: 1; padding: 32px; overflow-y: auto; }
+h2 { margin-top: 0; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+.card h3 { margin: 0 0 8px; font-size: 15px; }
+.card p { margin: 0; color: var(--muted); font-size: 14px; }
+
+.hint { color: var(--muted); font-size: 13px; }
+.error { color: #c0392b; font-size: 14px; }
+
+.field { display: flex; flex-direction: column; gap: 6px; max-width: 420px; font-size: 14px; }
+input, textarea {
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--text);
+}
+
+button.primary {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: var(--accent);
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+}
+button.primary:disabled { opacity: 0.5; cursor: default; }
+
+.chat { display: flex; flex-direction: column; height: 100%; }
+.messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-bottom: 16px; }
+.bubble { max-width: 75%; padding: 10px 14px; border-radius: 12px; white-space: pre-wrap; line-height: 1.45; font-size: 14px; }
+.bubble.user { align-self: flex-end; background: var(--accent); color: white; }
+.bubble.assistant { align-self: flex-start; background: var(--panel); border: 1px solid var(--border); }
+.composer { display: flex; gap: 8px; }
+.composer textarea { flex: 1; resize: none; height: 60px; }
