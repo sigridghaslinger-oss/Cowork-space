@@ -17,6 +17,7 @@ export async function streamReply(
   apiKey: string,
   history: ChatMessage[],
   onText: (delta: string) => void,
+  areaContext?: string,
 ): Promise<Anthropic.Beta.BetaMessage> {
   const stream = client(apiKey).beta.messages.stream({
     model: MODEL,
@@ -25,7 +26,7 @@ export async function streamReply(
     output_config: { effort: "low" },
     betas: ["server-side-fallback-2026-07-01"],
     fallbacks: "default",
-    system: SYSTEM_PROMPT,
+    system: areaContext ? `${SYSTEM_PROMPT}\n\nAktueller Bereich: ${areaContext}` : SYSTEM_PROMPT,
     messages: history,
   });
   stream.on("text", onText);
@@ -34,4 +35,21 @@ export async function streamReply(
     onText("\n\n(Claude hat diese Anfrage abgelehnt.)");
   }
   return message;
+}
+
+export async function streamDayPlan(
+  apiKey: string,
+  context: string,
+  onText: (delta: string) => void,
+): Promise<void> {
+  const prompt = `Hier sind meine Termine und ungelesenen Mails für heute.
+
+${context}
+
+Erstelle mir einen kurzen Tagesplan:
+1. Ein Ablauf des Tages mit den Terminen in zeitlicher Reihenfolge und sinnvollen Lücken für Aufgaben.
+2. Welche Mails ich heute beantworten oder erledigen sollte, je ein Satz dazu.
+3. Fällige Zahlungen oder Rechnungen, die in den Mails erwähnt werden, mit Betrag und Frist, falls genannt. Wenn keine dabei sind, schreib das.
+Schreib ohne Einleitung, mit kurzen Überschriften.`;
+  await streamReply(apiKey, [{ role: "user", content: prompt }], onText);
 }
