@@ -3,5 +3,19 @@
   "identifier": "default",
   "description": "Rechte für das Hauptfenster",
   "windows": ["main"],
-  "permissions": ["core:default", "store:default"]
+  "permissions": [
+    "core:default",
+    "store:default",
+    "opener:default",
+    "oauth:allow-start",
+    "oauth:allow-cancel",
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "https://oauth2.googleapis.com/*" },
+        { "url": "https://gmail.googleapis.com/*" },
+        { "url": "https://www.googleapis.com/*" }
+      ]
+    }
+  ]
 }

@@ -85,3 +85,24 @@ button.primary:disabled { opacity: 0.5; cursor: default; }
 .bubble.assistant { align-self: flex-start; background: var(--panel); border: 1px solid var(--border); }
 .composer { display: flex; gap: 8px; }
 .composer textarea { flex: 1; resize: none; height: 60px; }
+
+.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.row h2, .row h3 { margin: 0; }
+section > .row { margin-bottom: 16px; }
+.content button:not(.primary) {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+h3.section { margin-top: 32px; }
+.field + .field { margin-top: 12px; }
+
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
+.list .meta { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card.plan { margin-top: 16px; }
+.card.plan .row { margin-bottom: 12px; }
+.plan-text { white-space: pre-wrap; line-height: 1.5; font-size: 14px; }

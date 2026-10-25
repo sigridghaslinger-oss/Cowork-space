@@ -8,10 +8,22 @@ async function getStore(): Promise<Store> {
   return store;
 }
 
+export async function getSetting<T>(key: string): Promise<T | null> {
+  return (await (await getStore()).get<T>(key)) ?? null;
+}
+
+export async function setSetting(key: string, value: unknown): Promise<void> {
+  await (await getStore()).set(key, value);
+}
+
+export async function deleteSetting(key: string): Promise<void> {
+  await (await getStore()).delete(key);
+}
+
 export async function getApiKey(): Promise<string | null> {
-  return (await (await getStore()).get<string>("anthropicApiKey")) ?? null;
+  return getSetting<string>("anthropicApiKey");
 }
 
 export async function setApiKey(key: string): Promise<void> {
-  await (await getStore()).set("anthropicApiKey", key.trim());
+  await setSetting("anthropicApiKey", key.trim());
 }
