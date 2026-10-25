@@ -17,6 +17,7 @@ export async function streamReply(
   apiKey: string,
   history: ChatMessage[],
   onText: (delta: string) => void,
+  areaContext?: string,
 ): Promise<Anthropic.Beta.BetaMessage> {
   const stream = client(apiKey).beta.messages.stream({
     model: MODEL,
@@ -25,7 +26,7 @@ export async function streamReply(
     output_config: { effort: "low" },
     betas: ["server-side-fallback-2026-07-01"],
     fallbacks: "default",
-    system: SYSTEM_PROMPT,
+    system: areaContext ? `${SYSTEM_PROMPT}\n\nAktueller Bereich: ${areaContext}` : SYSTEM_PROMPT,
     messages: history,
   });
   stream.on("text", onText);

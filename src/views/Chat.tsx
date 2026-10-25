@@ -2,12 +2,21 @@ import { useState } from "react";
 import Anthropic from "@anthropic-ai/sdk";
 import { streamReply, type ChatMessage } from "../claude";
 import { getApiKey } from "../settings";
+import type { Area, AreaId } from "../areas";
 
 type Bubble = { role: "user" | "assistant"; text: string };
 
-export default function Chat() {
-  const [history, setHistory] = useState<ChatMessage[]>([]);
-  const [bubbles, setBubbles] = useState<Bubble[]>([]);
+export type ChatState = { history: ChatMessage[]; bubbles: Bubble[] };
+export const emptyChat: ChatState = { history: [], bubbles: [] };
+
+type Props = {
+  area: Area;
+  chat: ChatState;
+  setChat: (area: AreaId, update: (c: ChatState) => ChatState) => void;
+};
+
+// Jeder Bereich hat seinen eigenen Gesprächsverlauf; der Zustand liegt in App.
+export default function Chat({ area, chat, setChat: setChatFor }: Props) {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,24 +32,33 @@ export default function Chat() {
       return;
     }
 
-    const nextHistory: ChatMessage[] = [...history, { role: "user", content: text }];
+    // Antworten landen im Bereich, in dem gefragt wurde, auch wenn inzwischen gewechselt wird.
+    const areaId = area.id;
+    const setChat = (update: (c: ChatState) => ChatState) => setChatFor(areaId, update);
+
+    const nextHistory: ChatMessage[] = [...chat.history, { role: "user", content: text }];
     setInput("");
     setBusy(true);
-    setBubbles((b) => [...b, { role: "user", text }, { role: "assistant", text: "" }]);
+    setChat((c) => ({ ...c, bubbles: [...c.bubbles, { role: "user", text }, { role: "assistant", text: "" }] }));
 
     try {
-      const message = await streamReply(apiKey, nextHistory, (delta) => {
-        setBubbles((b) => {
-          const copy = [...b];
-          const last = copy[copy.length - 1];
-          copy[copy.length - 1] = { ...last, text: last.text + delta };
-          return copy;
-        });
-      });
+      const message = await streamReply(
+        apiKey,
+        nextHistory,
+        (delta) => {
+          setChat((c) => {
+            const bubbles = [...c.bubbles];
+            const last = bubbles[bubbles.length - 1];
+            bubbles[bubbles.length - 1] = { ...last, text: last.text + delta };
+            return { ...c, bubbles };
+          });
+        },
+        `Sigrids Bereich „${area.label}“. Beziehe dich auf diesen Lebensbereich.`,
+      );
       // Die vollständige Antwort (inkl. Denkblöcke) zurückgeben, damit der Verlauf gültig bleibt.
-      setHistory([...nextHistory, { role: "assistant", content: message.content }]);
+      setChat((c) => ({ ...c, history: [...nextHistory, { role: "assistant", content: message.content }] }));
     } catch (e) {
-      setBubbles((b) => b.slice(0, -2));
+      setChat((c) => ({ ...c, bubbles: c.bubbles.slice(0, -2) }));
       setInput(text);
       if (e instanceof Anthropic.AuthenticationError) {
         setError("Der API-Schlüssel wurde abgelehnt. Bitte prüfe ihn unter Einstellungen.");
@@ -58,14 +76,19 @@ export default function Chat() {
 
   return (
     <section className="chat">
-      <h2>Chat</h2>
+      <h2>
+        {area.icon} {area.label}
+      </h2>
       <div className="messages">
-        {bubbles.length === 0 && (
-          <p className="hint">Frag mich etwas, z. B. „Entwirf eine Mail an meine Vermieterin wegen der Heizung.“</p>
+        {chat.bubbles.length === 0 && (
+          <div className="empty">
+            <p>Worum geht es heute im Bereich {area.label}?</p>
+            <p className="hint">Zum Beispiel: „Entwirf mir eine Mail …“ oder „Fasse diese Notizen zusammen …“</p>
+          </div>
         )}
-        {bubbles.map((b, i) => (
+        {chat.bubbles.map((b, i) => (
           <div key={i} className={`bubble ${b.role}`}>
-            {b.text || (busy && i === bubbles.length - 1 ? "…" : "")}
+            {b.text || (busy && i === chat.bubbles.length - 1 ? "…" : "")}
           </div>
         ))}
       </div>
@@ -73,7 +96,7 @@ export default function Chat() {
       <div className="composer">
         <textarea
           value={input}
-          placeholder="Nachricht an Claude"
+          placeholder={`Nachricht an Claude (${area.label})`}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
