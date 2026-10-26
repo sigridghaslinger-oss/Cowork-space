@@ -4,6 +4,7 @@ import { checkInbox, type SenderKind } from "../claude";
 import { archiveMac, deleteMac, getMacInbox, getMacUnsubscribeLink, markMacRead, setMacFlag, type InboxMail } from "../mac";
 import { getApiKey, getSetting, setSetting } from "../settings";
 import { ReplyPanel } from "./Mails";
+import RemindButton from "./RemindButton";
 
 const DAY = 24 * 60 * 60 * 1000;
 const ageInDays = (d: Date) => Math.floor((Date.now() - d.getTime()) / DAY);
@@ -256,6 +257,7 @@ export default function Cleanup() {
                     <button className="primary" onClick={() => setOpenId(openId === m.id ? null : m.id)}>
                       {openId === m.id ? "Schließen" : "Antworten"}
                     </button>
+                    <RemindButton title={`Antworten: ${m.subject}`} notes={`Mail von ${m.from}`} mailId={m.id} />
                     <button onClick={() => toggleFlag(m)} disabled={busy} title="Fähnchen in Apple Mail">
                       {m.flagged ? "🚩 Fähnchen weg" : "🚩 Fähnchen"}
                     </button>

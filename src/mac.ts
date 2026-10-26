@@ -81,3 +81,25 @@ export async function deleteMac(ids: string[]): Promise<number> {
 export async function getMacUnsubscribeLink(id: string): Promise<string | null> {
   return invoke<string | null>("mac_unsubscribe_link", { id });
 }
+
+// Offene Erinnerungen aus der Erinnerungen-App (alle Listen).
+export type Reminder = { id: string; title: string; list: string; due: Date | null; notes: string };
+
+export async function getMacReminders(): Promise<Reminder[]> {
+  const raw = await invoke<(Omit<Reminder, "due"> & { due: number | null })[]>("mac_open_reminders");
+  return raw.map((r) => ({ ...r, due: r.due ? new Date(r.due) : null }));
+}
+
+export async function completeMacReminder(id: string): Promise<void> {
+  await invoke("mac_complete_reminder", { id });
+}
+
+// Legt eine Erinnerung in der Standardliste an. Mit mailId kommt ein Link zur Mail in die Notiz.
+export async function createMacReminder(r: { title: string; notes?: string; due?: Date; mailId?: string }): Promise<void> {
+  await invoke("mac_create_reminder", {
+    title: r.title,
+    notes: r.notes ?? "",
+    dueMs: r.due?.getTime() ?? null,
+    mailId: r.mailId ?? null,
+  });
+}
