@@ -2,6 +2,8 @@
 mod mac_calendar;
 #[cfg(target_os = "macos")]
 mod mac_mail;
+#[cfg(target_os = "macos")]
+mod mac_screen;
 
 #[cfg(target_os = "macos")]
 #[tauri::command]
@@ -36,6 +38,14 @@ async fn mac_open_reply(id: String, text: String) -> Result<bool, String> {
         .map_err(|e| e.to_string())?
 }
 
+#[cfg(target_os = "macos")]
+#[tauri::command]
+async fn mac_capture_window(app_name: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || mac_screen::capture_app_window(&app_name))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default()
@@ -49,7 +59,8 @@ pub fn run() {
         mac_events_for_day,
         mac_unread_mails,
         mac_mail_content,
-        mac_open_reply
+        mac_open_reply,
+        mac_capture_window
     ]);
 
     builder

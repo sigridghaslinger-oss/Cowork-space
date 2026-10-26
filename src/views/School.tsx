@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import Chat, { type ChatState } from "./Chat";
 import Rubric from "./Rubric";
+import Week from "./Week";
 import type { Area, AreaId } from "../areas";
 import type { CalendarEvent } from "../google/calendar";
 import type { MailSummary } from "../google/gmail";
@@ -70,7 +71,12 @@ export default function School({ area, chat, setChat }: Props) {
       {tab === "overview" && <Overview exams={exams} onOpenExams={() => setTab("exams")} />}
       {tab === "exams" && <Exams exams={exams} onChange={updateExams} />}
       {tab === "rubric" && <Rubric />}
-      {tab === "classbook" && <Classbook />}
+      {tab === "classbook" && (
+        <>
+          <Week />
+          <Classbook />
+        </>
+      )}
       {tab === "chat" && <Chat area={area} chat={chat} setChat={setChat} hideTitle />}
     </section>
   );
@@ -390,7 +396,7 @@ function Classbook() {
 
   return (
     <article className="card">
-      <h3>Klassenbucheintrag und Stundenplanung</h3>
+      <h3>Einzelne Stunde aus Stichworten</h3>
       <div className="form-grid">
         <Field label="Klasse"><input value={klasse} placeholder="z. B. 2a" onChange={(e) => setKlasse(e.target.value)} /></Field>
         <Field label="Fach"><input value={fach} placeholder="z. B. Informatik" onChange={(e) => setFach(e.target.value)} /></Field>

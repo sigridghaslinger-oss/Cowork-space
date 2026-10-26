@@ -26,3 +26,8 @@ export async function getMacMailContent(id: string): Promise<string> {
 export async function openMacReply(id: string, text: string): Promise<boolean> {
   return invoke<boolean>("mac_open_reply", { id, text });
 }
+
+// Bildschirmfoto vom Fenster einer anderen App (PNG, Base64), z. B. „Mein Schulplan“.
+export async function captureMacWindow(appName: string): Promise<string> {
+  return invoke<string>("mac_capture_window", { appName });
+}

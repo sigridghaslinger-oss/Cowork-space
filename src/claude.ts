@@ -285,3 +285,59 @@ Nenne niemals den Namen des Kindes, auch wenn er auf dem Blatt steht.`,
   if (!response.parsed_output) throw new Error("Claude konnte keine Bewertung erstellen.");
   return response.parsed_output;
 }
+
+const WeekSchema = z.object({
+  entries: z.array(
+    z.object({
+      tag: z.string(),
+      datum: z.string(),
+      stunde: z.string(),
+      klasse: z.string(),
+      fach: z.string(),
+      eintrag: z.string(),
+      unsicher: z.boolean(),
+    }),
+  ),
+  hinweise: z.string(),
+});
+
+export type WeekEntry = z.infer<typeof WeekSchema>["entries"][number];
+
+// Claude liest Bildschirmfotos aus „Mein Schulplan“ und schreibt je Stunde einen Klassenbucheintrag.
+export async function classbookFromScreens(apiKey: string, images: string[]) {
+  const response = await client(apiKey).beta.messages.stream({
+    model: MODEL,
+    max_tokens: 32000,
+    thinking: { type: "adaptive" },
+    output_config: { effort: "medium", format: betaZodOutputFormat(WeekSchema) },
+    betas: ["server-side-fallback-2026-07-01"],
+    fallbacks: "default",
+    system: `${SYSTEM_PROMPT}\n\nDu hilfst Sigrid, ihr Klassenbuch in EduPage zu führen.`,
+    messages: [
+      {
+        role: "user",
+        content: [
+          ...images.map((data) => ({
+            type: "image" as const,
+            source: { type: "base64" as const, media_type: "image/jpeg" as const, data },
+          })),
+          {
+            type: "text",
+            text: `Das sind Bildschirmfotos aus meiner Unterrichtsplanung („Mein Schulplan“), meist die Wochenansicht. Mehrere Bilder können dieselbe Woche zeigen, dann führe sie zusammen und lass Doppeltes weg.
+
+Schreib für jede geplante Unterrichtsstunde einen Klassenbucheintrag:
+- tag (z. B. "Montag"), datum (z. B. "27.10.", sonst ""), stunde (z. B. "3." oder Uhrzeit, sonst ""), klasse, fach.
+- eintrag: der Lehrstoff in einer knappen Zeile, so wie man ihn ins Klassenbuch einträgt. Nur was in der Planung steht, nichts dazuerfinden.
+- unsicher = true, wenn der Text abgeschnitten oder schwer lesbar ist.
+- Reihenfolge nach Tag und Stunde. Lass Ferien, Feiertage, Konferenzen, Pausen und Verwaltungstermine weg.
+- Keine Schülernamen.
+- hinweise: was ich prüfen sollte (z. B. abgeschnittene Titel, fehlende Tage). Sonst "".`,
+          },
+        ],
+      },
+    ],
+  }).finalMessage();
+  if (response.stop_reason === "refusal") throw new Error("Claude hat die Einträge nicht erstellt.");
+  if (!response.parsed_output) throw new Error("Claude konnte keine Einträge erstellen.");
+  return response.parsed_output;
+}
