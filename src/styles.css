@@ -370,3 +370,27 @@ table.grades.limits input { width: 90px; padding: 6px 8px; }
 .board-chat .chat { height: 100%; }
 .board .tile-panel .actions { margin-bottom: 4px; }
 .board .coaching-sums .pill.focus { background: var(--panel-soft); color: var(--text); }
+
+/* Bewerten: Stapel, Ändern und Klassen-Übersicht */
+.editing-banner {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  margin: 0 0 14px; padding: 10px 14px; border-radius: 6px; background: var(--accent-soft); color: var(--text); font-size: 14px;
+}
+table.grades tr.current td { background: var(--accent-soft); }
+table.grades td.actions { display: flex; gap: 6px; justify-content: flex-end; }
+table.grades.batch { width: 100%; margin-top: 12px; }
+.batch-fertig { color: var(--accent); font-weight: 600; }
+.batch-fehler { color: var(--danger); }
+.batch-erledigt, .batch-wartet { color: var(--muted); }
+.mini-spiegel { display: flex; align-items: flex-end; gap: 3px; height: 28px; margin-top: auto; }
+.mini-spiegel span { flex: 1; background: var(--accent); opacity: 0.55; border-radius: 2px 2px 0 0; }
+.class-panel { margin-top: 16px; padding-top: 4px; border-top: 1px solid var(--border); }
+.class-panel > .row > div { flex: 1; }
+.class-panel h4 { margin: 16px 0 8px; }
+table.grades.spiegel .bar { display: inline-block; height: 10px; border-radius: 3px; background: var(--accent); vertical-align: middle; }
+.note-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 12px 0; }
+.note-box { border: 1px solid var(--border); border-radius: 6px; padding: 12px 14px; }
+.note-box .rubric-note { margin: 4px 0; }
+.note-box.muted .rubric-note { opacity: 0.5; text-decoration: line-through; }
+.note-box.mine { border: 2px solid var(--accent); background: var(--accent-soft); padding: 11px 13px; }
+.note-box select { width: 100%; margin: 6px 0 2px; font-size: 16px; }

@@ -29,7 +29,7 @@ type Tab = "planbuch" | "overview" | "exams" | "rubric" | "classbook" | "chat";
 const TABS: { id: Tab; label: string }[] = [
   { id: "planbuch", label: "Planbuch" },
   { id: "overview", label: "Überblick" },
-  { id: "exams", label: "Schularbeiten" },
+  { id: "exams", label: "Schularbeiten, Tests, Diktate" },
   { id: "rubric", label: "Bewerten" },
   { id: "classbook", label: "Klassenbuch & Planung" },
   { id: "chat", label: "Chat" },
@@ -165,7 +165,7 @@ function Overview({ exams, onOpenExams }: { exams: Exam[]; onOpenExams: () => vo
 
       <article className="card plan">
         <div className="row">
-          <h3>Schularbeiten zum Korrigieren</h3>
+          <h3>Schularbeiten, Tests und Diktate zum Korrigieren</h3>
           <button onClick={onOpenExams}>Verwalten</button>
         </div>
         {open.length === 0 ? (
@@ -206,7 +206,7 @@ function Exams({ exams, onChange }: { exams: Exam[]; onChange: (e: Exam[]) => vo
   }
 
   function remove(id: string) {
-    if (confirm("Diese Schularbeit aus der Liste entfernen?")) onChange(exams.filter((e) => e.id !== id));
+    if (confirm("Diese Arbeit aus der Liste entfernen?")) onChange(exams.filter((e) => e.id !== id));
   }
 
   async function makePlan() {
@@ -244,7 +244,7 @@ function Exams({ exams, onChange }: { exams: Exam[]; onChange: (e: Exam[]) => vo
         .join("\n");
       const context = `Heute ist ${new Date().toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long" })}, ${time(new Date())} Uhr.
 
-Offene Schularbeiten:
+Offene Schularbeiten, Tests und Diktate:
 ${list}
 
 Mein Kalender:
@@ -262,7 +262,7 @@ ${calendar.join("\n")}`;
   return (
     <>
       <article className="card">
-        <h3>Neue Schularbeit</h3>
+        <h3>Neue Schularbeit, neuer Test oder neues Diktat</h3>
         <div className="form-grid">
           <Field label="Klasse"><input value={form.klasse} placeholder="z. B. 4b" onChange={(e) => setForm({ ...form, klasse: e.target.value })} /></Field>
           <Field label="Fach"><input value={form.fach} placeholder="z. B. Mathematik" onChange={(e) => setForm({ ...form, fach: e.target.value })} /></Field>
