@@ -350,3 +350,21 @@ table.grades.limits input { width: 90px; padding: 6px 8px; }
 @media (prefers-color-scheme: dark) {
   .plan-section { background: color-mix(in srgb, var(--accent-soft) 15%, var(--panel)); }
 }
+
+/* Ausbildung */
+.training .grow { flex: 1; min-width: 0; }
+.training .events > li, .training .reminder { align-items: flex-start; }
+.training .tile-panel h4 { margin: 20px 0 10px; }
+.training .tile-panel > .primary { margin-top: 4px; }
+.training .reminder.done { opacity: 0.55; text-decoration: line-through; }
+.training .events.past { opacity: 0.6; margin-top: 10px; }
+.training .entry + .entry { border-top: 1px solid var(--border); padding-top: 12px; }
+.training .entry-text { white-space: pre-wrap; color: var(--text); line-height: 1.5; margin-top: 8px; background: var(--panel-soft); border-radius: 10px; padding: 10px 12px; }
+.training .progress-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.training .coaching-sums { margin: 10px 0 14px; }
+.training .coaching-sums .pill { background: var(--accent-soft); color: var(--accent); }
+.training .task-add { align-items: center; margin-bottom: 14px; }
+.training .task-add input:first-child { flex: 1; }
+.training .content button.ghost.link, .training button.ghost.link { padding: 0; }
+.training-chat { height: 480px; display: flex; flex-direction: column; }
+.training-chat .chat { height: 100%; }
