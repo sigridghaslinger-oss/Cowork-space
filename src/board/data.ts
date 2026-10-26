@@ -1,14 +1,14 @@
 import { getSetting, setSetting } from "../settings";
 
-// Alles zur Ausbildung liegt lokal am Mac unter dem Schlüssel „training“.
+// Die Kachel-Bereiche (Ausbildung, Lernanker) speichern lokal am Mac, jeder unter seinem eigenen Schlüssel.
 
-export type TrainingDate = {
+export type BoardDate = {
   id: string;
   datum: string; // YYYY-MM-DD
   uhrzeit: string; // z. B. „09:00“, leer = ganztägig
   titel: string;
   ort: string;
-  art: "Modul" | "Supervision" | "Prüfung" | "Abgabe" | "Sonstiges";
+  art: string; // z. B. Modul, Supervision; je Bereich andere Auswahl
 };
 
 export type CoachingSession = {
@@ -28,7 +28,7 @@ export type JournalEntry = { id: string; datum: string; titel: string; text: str
 
 export type Document = { id: string; titel: string; link: string };
 
-export type Training = {
+export type BoardData = {
   name: string;
   anbieter: string;
   start: string;
@@ -38,38 +38,45 @@ export type Training = {
   stundenZiel: number;
   // Termine im Mac-Kalender, deren Titel oder Kalender dieses Wort enthält, erscheinen auch hier.
   stichwort: string;
-  termine: TrainingDate[];
+  termine: BoardDate[];
   coaching: CoachingSession[];
   aufgaben: Task[];
   journal: JournalEntry[];
   unterlagen: Document[];
+  // Lernanker: die eigene Homepage, ihr Code und was daran noch zu tun ist.
+  homepageUrl: string;
+  codeUrl: string;
+  baustellen: Task[];
 };
 
-export const emptyTraining = (): Training => ({
+export const emptyBoard = (stichwort: string): BoardData => ({
   name: "",
   anbieter: "",
   start: "",
   ende: "",
   ziel: "",
   stundenZiel: 0,
-  stichwort: "Ausbildung",
+  stichwort,
   termine: [],
   coaching: [],
   aufgaben: [],
   journal: [],
   unterlagen: [],
+  homepageUrl: "",
+  codeUrl: "",
+  baustellen: [],
 });
 
-export async function loadTraining(): Promise<Training> {
-  return { ...emptyTraining(), ...((await getSetting<Partial<Training>>("training")) ?? {}) };
+export async function loadBoard(key: string, stichwort: string): Promise<BoardData> {
+  return { ...emptyBoard(stichwort), ...((await getSetting<Partial<BoardData>>(key)) ?? {}) };
 }
 
-export async function saveTraining(t: Training): Promise<void> {
-  await setSetting("training", t);
+export async function saveBoard(key: string, data: BoardData): Promise<void> {
+  await setSetting(key, data);
 }
 
 export const newId = () => crypto.randomUUID();
 
-export const coachingHours = (t: Training) => t.coaching.reduce((n, s) => n + s.minuten, 0) / 60;
+export const coachingHours = (t: BoardData) => t.coaching.reduce((n, s) => n + s.minuten, 0) / 60;
 
 export const hoursLabel = (h: number) => `${h.toLocaleString("de-DE", { maximumFractionDigits: 1 })} h`;

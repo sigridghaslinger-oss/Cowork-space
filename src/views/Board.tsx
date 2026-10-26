@@ -8,20 +8,71 @@ import { formatDay, isoDay } from "../school/exams";
 import {
   coachingHours,
   hoursLabel,
-  loadTraining,
+  loadBoard,
   newId,
-  saveTraining,
+  saveBoard,
+  type BoardData,
+  type BoardDate,
   type CoachingSession,
-  type Training as TrainingData,
-  type TrainingDate,
-} from "../training/data";
+  type Task,
+} from "../board/data";
 
-type TileId = "overview" | "dates" | "coaching" | "tasks" | "journal" | "docs" | "chat";
-const TILE_KEY = "training-tile";
+type TileId = "overview" | "homepage" | "dates" | "coaching" | "tasks" | "journal" | "docs" | "chat";
 
-function savedTile(): TileId | null {
+// Was die beiden Kachel-Bereiche unterscheidet: welche Kacheln es gibt und wie sie heißen.
+type BoardConfig = {
+  storageKey: string;
+  tiles: TileId[];
+  stichwort: string;
+  overview: { title: string; nameLabel: string; namePlaceholder: string; anbieterLabel: string; zielLabel: string; hours: boolean };
+  dateKinds: string[];
+  tasks: { title: string; placeholder: string; empty: string };
+  journal: { title: string; icon: string; label: string; placeholder: string; empty: string };
+  chatPreview: string;
+};
+
+const CONFIG: Partial<Record<AreaId, BoardConfig>> = {
+  ausbildung: {
+    storageKey: "training",
+    tiles: ["overview", "dates", "coaching", "tasks", "journal", "docs", "chat"],
+    stichwort: "Ausbildung",
+    overview: {
+      title: "Meine Ausbildung",
+      nameLabel: "Name der Ausbildung",
+      namePlaceholder: "z. B. Systemisches Coaching",
+      anbieterLabel: "Anbieter / Institut",
+      zielLabel: "Mein Ziel / warum ich das mache",
+      hours: true,
+    },
+    dateKinds: ["Modul", "Supervision", "Prüfung", "Abgabe", "Sonstiges"],
+    tasks: { title: "Checkliste", placeholder: "z. B. Hausarbeit Modul 2 abgeben", empty: "Sammle hier, was bis zum Abschluss erledigt sein muss." },
+    journal: { title: "Lernjournal", icon: "📝", label: "Was habe ich gelernt, was beschäftigt mich?", placeholder: "z. B. Erkenntnisse aus Modul 2", empty: "Gedanken festhalten" },
+    chatPreview: "Reflexion, Zusammenfassung, Ideen",
+  },
+  lernanker: {
+    storageKey: "lernanker",
+    tiles: ["overview", "homepage", "dates", "tasks", "journal", "docs", "chat"],
+    stichwort: "Lernanker",
+    overview: {
+      title: "Mein Lernanker",
+      nameLabel: "Name des Projekts",
+      namePlaceholder: "z. B. Lernanker",
+      anbieterLabel: "Zielgruppe",
+      zielLabel: "Worum geht es, was ist mein Ziel?",
+      hours: false,
+    },
+    dateKinds: ["Termin", "Veröffentlichung", "Treffen", "Frist", "Sonstiges"],
+    tasks: { title: "Checkliste", placeholder: "z. B. Angebot für Elternabend schreiben", empty: "Sammle hier, was für Lernanker zu tun ist." },
+    journal: { title: "Ideen & Notizen", icon: "💡", label: "Idee oder Notiz", placeholder: "z. B. Neue Seite: Lerntipps für Eltern", empty: "Ideen sammeln" },
+    chatPreview: "Texte, Ideen, Hilfe bei der Homepage",
+  },
+};
+
+export const hasBoard = (id: AreaId) => id in CONFIG;
+
+function savedTile(key: string): TileId | null {
   try {
-    return (localStorage.getItem(TILE_KEY) as TileId) || null;
+    return (localStorage.getItem(key) as TileId) || null;
   } catch {
     return null;
   }
@@ -36,14 +87,17 @@ type Props = {
   setChat: (area: AreaId, update: (c: ChatState) => ChatState) => void;
 };
 
-export default function Training({ area, chat, setChat }: Props) {
-  const [data, setData] = useState<TrainingData | null>(null);
-  const [tile, setTile] = useState<TileId | null>(savedTile);
+// Übersicht eines Bereichs aus Kacheln, die ihren Inhalt darunter öffnen (wie die Heute-Seite).
+export default function Board({ area, chat, setChat }: Props) {
+  const config = CONFIG[area.id]!;
+  const tileKey = `${config.storageKey}-tile`;
+  const [data, setData] = useState<BoardData | null>(null);
+  const [tile, setTile] = useState<TileId | null>(() => savedTile(tileKey));
   const [calendar, setCalendar] = useState<CalendarEvent[]>([]);
 
   useEffect(() => {
-    loadTraining().then(setData);
-  }, []);
+    loadBoard(config.storageKey, config.stichwort).then(setData);
+  }, [config]);
 
   // Passende Kalendertermine der nächsten acht Wochen, damit sie nicht doppelt eingetragen werden müssen.
   useEffect(() => {
@@ -72,11 +126,11 @@ export default function Training({ area, chat, setChat }: Props) {
     };
   }, [data?.stichwort]);
 
-  function update(change: (t: TrainingData) => TrainingData) {
+  function update(change: (t: BoardData) => BoardData) {
     setData((t) => {
       if (!t) return t;
       const next = change(t);
-      saveTraining(next);
+      saveBoard(config.storageKey, next);
       return next;
     });
   }
@@ -85,7 +139,7 @@ export default function Training({ area, chat, setChat }: Props) {
     const next = tile === id ? null : id;
     setTile(next);
     try {
-      localStorage.setItem(TILE_KEY, next ?? "");
+      localStorage.setItem(tileKey, next ?? "");
     } catch {
       // Ohne Speicher startet die Seite eben mit allen Kacheln zu.
     }
@@ -97,39 +151,44 @@ export default function Training({ area, chat, setChat }: Props) {
   const nextDate = upcoming[0];
   const openTasks = data.aufgaben.filter((a) => !a.erledigt);
   const doneTasks = data.aufgaben.length - openTasks.length;
+  const openSites = data.baustellen.filter((a) => !a.erledigt);
   const hours = coachingHours(data);
   const lastNote = [...data.journal].sort((a, b) => b.datum.localeCompare(a.datum))[0];
+  const showHours = config.overview.hours && data.stundenZiel > 0;
 
-  const tiles: { id: TileId; icon: string; title: string; count?: number; preview: string }[] = [
-    { id: "overview", icon: "🎓", title: "Übersicht", preview: data.name || "Ausbildung eintragen" },
-    {
-      id: "dates",
+  const allTiles: Record<TileId, { icon: string; title: string; count?: number; preview: string }> = {
+    overview: { icon: area.icon, title: "Übersicht", preview: data.name || "Eintragen, worum es geht" },
+    homepage: {
+      icon: "🌐",
+      title: "Homepage",
+      count: openSites.length,
+      preview: openSites[0]?.text ?? (data.homepageUrl ? data.homepageUrl.replace(/^https?:\/\//, "") : "Adresse und Baustellen"),
+    },
+    dates: {
       icon: "📅",
       title: "Termine",
       count: upcoming.length + calendar.length,
       preview: nextDate ? `${formatDay(nextDate.datum)} ${nextDate.titel}` : calendar[0] ? calendar[0].title : "keine Termine",
     },
-    {
-      id: "coaching",
+    coaching: {
       icon: "💬",
       title: "Coaching",
       count: data.coaching.length,
       preview: data.stundenZiel ? `${hoursLabel(hours)} von ${data.stundenZiel} h` : `${hoursLabel(hours)} gesamt`,
     },
-    {
-      id: "tasks",
+    tasks: {
       icon: "✅",
-      title: "Checkliste",
+      title: config.tasks.title,
       count: openTasks.length,
       preview: openTasks[0]?.text ?? (data.aufgaben.length ? "alles erledigt 🌿" : "Aufgaben sammeln"),
     },
-    { id: "journal", icon: "📝", title: "Lernjournal", count: data.journal.length, preview: lastNote?.titel ?? "Gedanken festhalten" },
-    { id: "docs", icon: "📎", title: "Unterlagen", count: data.unterlagen.length, preview: data.unterlagen[0]?.titel ?? "Links sammeln" },
-    { id: "chat", icon: "✨", title: "Claude fragen", preview: "Reflexion, Zusammenfassung, Ideen" },
-  ];
+    journal: { icon: config.journal.icon, title: config.journal.title, count: data.journal.length, preview: lastNote?.titel ?? config.journal.empty },
+    docs: { icon: "📎", title: "Unterlagen", count: data.unterlagen.length, preview: data.unterlagen[0]?.titel ?? "Links sammeln" },
+    chat: { icon: "✨", title: "Claude fragen", preview: config.chatPreview },
+  };
 
   return (
-    <section className="today training">
+    <section className="today board">
       <div className="row">
         <h2>
           {area.icon} {data.name || area.label}
@@ -143,15 +202,20 @@ export default function Training({ area, chat, setChat }: Props) {
             📅 {nextDate ? <><strong>{formatDay(nextDate.datum)}{nextDate.uhrzeit && `, ${nextDate.uhrzeit}`}</strong> {nextDate.titel}</> : "Kein Termin eingetragen."}
           </li>
           <li>
-            ✅ {openTasks.length ? <>{openTasks.length} offene Aufgaben, als Nächstes: <strong>{nextTask(openTasks)}</strong></> : "Keine offenen Aufgaben."}
+            ✅ {openTasks.length ? <>{openTasks.length === 1 ? "1 offene Aufgabe" : `${openTasks.length} offene Aufgaben`}, als Nächstes: <strong>{nextTask(openTasks)}</strong></> : "Keine offenen Aufgaben."}
           </li>
-          {(data.stundenZiel > 0 || data.aufgaben.length > 0) && (
+          {config.tiles.includes("homepage") && openSites.length > 0 && (
+            <li>
+              🌐 {openSites.length === 1 ? "1 Baustelle" : `${openSites.length} Baustellen`} an der Homepage, als Nächstes: <strong>{nextTask(openSites)}</strong>
+            </li>
+          )}
+          {(showHours || data.aufgaben.length > 0) && (
             <li className="progress-pair">
-              {data.stundenZiel > 0 && (
+              {showHours && (
                 <ProgressLine label="Coaching-Stunden" value={hours} max={data.stundenZiel} text={`${hoursLabel(hours)} von ${data.stundenZiel} h`} />
               )}
               {data.aufgaben.length > 0 && (
-                <ProgressLine label="Checkliste" value={doneTasks} max={data.aufgaben.length} text={`${doneTasks} von ${data.aufgaben.length} erledigt`} />
+                <ProgressLine label={config.tasks.title} value={doneTasks} max={data.aufgaben.length} text={`${doneTasks} von ${data.aufgaben.length} erledigt`} />
               )}
             </li>
           )}
@@ -159,36 +223,44 @@ export default function Training({ area, chat, setChat }: Props) {
       </article>
 
       <div className="tiles">
-        {tiles.map((t) => (
-          <button key={t.id} className={tile === t.id ? "tile active" : "tile"} onClick={() => toggleTile(t.id)}>
-            <span className="tile-head">
-              <span className="tile-icon">{t.icon}</span>
-              {t.count !== undefined && <span className="tile-count">{t.count}</span>}
-            </span>
-            <span className="tile-title">{t.title}</span>
-            <span className="tile-preview">{t.preview}</span>
-          </button>
-        ))}
+        {config.tiles.map((id) => {
+          const t = allTiles[id];
+          return (
+            <button key={id} className={tile === id ? "tile active" : "tile"} onClick={() => toggleTile(id)}>
+              <span className="tile-head">
+                <span className="tile-icon">{t.icon}</span>
+                {t.count !== undefined && <span className="tile-count">{t.count}</span>}
+              </span>
+              <span className="tile-title">{t.title}</span>
+              <span className="tile-preview">{t.preview}</span>
+            </button>
+          );
+        })}
       </div>
 
-      {tile === "overview" && <Overview data={data} update={update} />}
-      {tile === "dates" && <Dates data={data} calendar={calendar} update={update} />}
-      {tile === "coaching" && <Coaching data={data} update={update} />}
-      {tile === "tasks" && <Tasks data={data} update={update} />}
-      {tile === "journal" && <Journal data={data} update={update} />}
-      {tile === "docs" && <Docs data={data} update={update} />}
-      {tile === "chat" && (
-        <article className="card tile-panel training-chat">
-          <Chat area={area} chat={chat} setChat={setChat} hideTitle />
-        </article>
+      {tile && config.tiles.includes(tile) && (
+        <>
+          {tile === "overview" && <Overview data={data} update={update} config={config} />}
+          {tile === "homepage" && <Homepage data={data} update={update} />}
+          {tile === "dates" && <Dates data={data} calendar={calendar} update={update} kinds={config.dateKinds} />}
+          {tile === "coaching" && <Coaching data={data} update={update} />}
+          {tile === "tasks" && <Tasks data={data} update={update} field="aufgaben" text={config.tasks} />}
+          {tile === "journal" && <Journal data={data} update={update} text={config.journal} />}
+          {tile === "docs" && <Docs data={data} update={update} />}
+          {tile === "chat" && (
+            <article className="card tile-panel board-chat">
+              <Chat area={area} chat={chat} setChat={setChat} hideTitle />
+            </article>
+          )}
+        </>
       )}
     </section>
   );
 }
 
-type PanelProps = { data: TrainingData; update: (change: (t: TrainingData) => TrainingData) => void };
+type PanelProps = { data: BoardData; update: (change: (t: BoardData) => BoardData) => void };
 
-function nextTask(open: TrainingData["aufgaben"]): string {
+function nextTask(open: Task[]): string {
   const withDate = open.filter((a) => a.frist).sort((a, b) => a.frist.localeCompare(b.frist));
   const t = withDate[0] ?? open[0];
   return t.frist ? `${t.text} (bis ${formatDay(t.frist)})` : t.text;
@@ -206,31 +278,34 @@ function ProgressLine({ label, value, max, text }: { label: string; value: numbe
   );
 }
 
-function Overview({ data, update }: PanelProps) {
-  const set = (key: keyof TrainingData) => (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+function Overview({ data, update, config }: PanelProps & { config: BoardConfig }) {
+  const o = config.overview;
+  const set = (key: keyof BoardData) => (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     update((t) => ({ ...t, [key]: key === "stundenZiel" ? Number(e.target.value) || 0 : e.target.value }));
   return (
     <article className="card tile-panel">
-      <h3>Meine Ausbildung</h3>
+      <h3>{o.title}</h3>
       <p className="hint">Alles wird sofort gespeichert und bleibt nur auf deinem Mac.</p>
       <div className="form-grid">
-        <label className="field">Name der Ausbildung<input value={data.name} onChange={set("name")} placeholder="z. B. Systemisches Coaching" /></label>
-        <label className="field">Anbieter / Institut<input value={data.anbieter} onChange={set("anbieter")} /></label>
+        <label className="field">{o.nameLabel}<input value={data.name} onChange={set("name")} placeholder={o.namePlaceholder} /></label>
+        <label className="field">{o.anbieterLabel}<input value={data.anbieter} onChange={set("anbieter")} /></label>
         <label className="field">Beginn<input type="date" value={data.start} onChange={set("start")} /></label>
-        <label className="field">Abschluss<input type="date" value={data.ende} onChange={set("ende")} /></label>
-        <label className="field">Nötige Coaching-Stunden<input type="number" min={0} value={data.stundenZiel || ""} onChange={set("stundenZiel")} placeholder="z. B. 30" /></label>
-        <label className="field">Stichwort im Kalender<input value={data.stichwort} onChange={set("stichwort")} placeholder="z. B. Ausbildung" /></label>
+        <label className="field">{o.hours ? "Abschluss" : "Ziel bis"}<input type="date" value={data.ende} onChange={set("ende")} /></label>
+        {o.hours && (
+          <label className="field">Nötige Coaching-Stunden<input type="number" min={0} value={data.stundenZiel || ""} onChange={set("stundenZiel")} placeholder="z. B. 30" /></label>
+        )}
+        <label className="field">Stichwort im Kalender<input value={data.stichwort} onChange={set("stichwort")} placeholder={`z. B. ${config.stichwort}`} /></label>
       </div>
-      <label className="field wide">Mein Ziel / warum ich das mache<textarea value={data.ziel} onChange={set("ziel")} /></label>
+      <label className="field wide">{o.zielLabel}<textarea value={data.ziel} onChange={set("ziel")} /></label>
       <p className="hint">Termine im Kalender, deren Titel oder Kalendername das Stichwort enthält, erscheinen automatisch unter Termine.</p>
     </article>
   );
 }
 
-const emptyDate = () => ({ datum: today(), uhrzeit: "", titel: "", ort: "", art: "Modul" as TrainingDate["art"] });
+const emptyDate = (art: string) => ({ datum: today(), uhrzeit: "", titel: "", ort: "", art });
 
-function Dates({ data, calendar, update }: PanelProps & { calendar: CalendarEvent[] }) {
-  const [form, setForm] = useState(emptyDate());
+function Dates({ data, calendar, update, kinds }: PanelProps & { calendar: CalendarEvent[]; kinds: string[] }) {
+  const [form, setForm] = useState(emptyDate(kinds[0]));
   const [showPast, setShowPast] = useState(false);
   const sorted = [...data.termine].sort((a, b) => a.datum.localeCompare(b.datum) || a.uhrzeit.localeCompare(b.uhrzeit));
   const upcoming = sorted.filter((d) => d.datum >= today());
@@ -239,12 +314,12 @@ function Dates({ data, calendar, update }: PanelProps & { calendar: CalendarEven
   function add() {
     if (!form.titel.trim() || !form.datum) return;
     update((t) => ({ ...t, termine: [...t.termine, { id: newId(), ...form, titel: form.titel.trim() }] }));
-    setForm(emptyDate());
+    setForm(emptyDate(kinds[0]));
   }
 
   const remove = (id: string) => update((t) => ({ ...t, termine: t.termine.filter((d) => d.id !== id) }));
 
-  const row = (d: TrainingDate) => (
+  const row = (d: BoardDate) => (
     <li key={d.id}>
       <span className="event-time">{formatDay(d.datum)}</span>
       <div className="grow">
@@ -261,11 +336,11 @@ function Dates({ data, calendar, update }: PanelProps & { calendar: CalendarEven
       <div className="form-grid">
         <label className="field">Datum<input type="date" value={form.datum} onChange={(e) => setForm({ ...form, datum: e.target.value })} /></label>
         <label className="field">Uhrzeit<input type="time" value={form.uhrzeit} onChange={(e) => setForm({ ...form, uhrzeit: e.target.value })} /></label>
-        <label className="field">Was<input value={form.titel} onChange={(e) => setForm({ ...form, titel: e.target.value })} placeholder="z. B. Modul 3" /></label>
+        <label className="field">Was<input value={form.titel} onChange={(e) => setForm({ ...form, titel: e.target.value })} placeholder={kinds[0] === "Modul" ? "z. B. Modul 3" : "z. B. Treffen mit Webdesignerin"} /></label>
         <label className="field">Ort<input value={form.ort} onChange={(e) => setForm({ ...form, ort: e.target.value })} /></label>
         <label className="field">Art
-          <select value={form.art} onChange={(e) => setForm({ ...form, art: e.target.value as TrainingDate["art"] })}>
-            {["Modul", "Supervision", "Prüfung", "Abgabe", "Sonstiges"].map((a) => <option key={a}>{a}</option>)}
+          <select value={form.art} onChange={(e) => setForm({ ...form, art: e.target.value })}>
+            {kinds.map((a) => <option key={a}>{a}</option>)}
           </select>
         </label>
       </div>
@@ -372,38 +447,50 @@ function Coaching({ data, update }: PanelProps) {
   );
 }
 
-function Tasks({ data, update }: PanelProps) {
+type TaskText = { title: string; placeholder: string; empty: string };
+
+function Tasks({ data, update, field, text: labels }: PanelProps & { field: "aufgaben" | "baustellen"; text: TaskText }) {
+  return (
+    <article className="card tile-panel">
+      <h3>{labels.title}</h3>
+      <TaskList data={data} update={update} field={field} text={labels} />
+    </article>
+  );
+}
+
+// Abhakliste mit optionaler Frist; dient als Checkliste und als Baustellen-Liste der Homepage.
+function TaskList({ data, update, field, text: labels }: PanelProps & { field: "aufgaben" | "baustellen"; text: TaskText }) {
   const [text, setText] = useState("");
   const [frist, setFrist] = useState("");
-  const sorted = [...data.aufgaben].sort(
+  const items = data[field];
+  const sorted = [...items].sort(
     (a, b) => Number(a.erledigt) - Number(b.erledigt) || (a.frist || "9999").localeCompare(b.frist || "9999"),
   );
 
   function add() {
     if (!text.trim()) return;
-    update((t) => ({ ...t, aufgaben: [...t.aufgaben, { id: newId(), text: text.trim(), frist, erledigt: false }] }));
+    update((t) => ({ ...t, [field]: [...t[field], { id: newId(), text: text.trim(), frist, erledigt: false }] }));
     setText("");
     setFrist("");
   }
 
   const toggle = (id: string) =>
-    update((t) => ({ ...t, aufgaben: t.aufgaben.map((a) => (a.id === id ? { ...a, erledigt: !a.erledigt } : a)) }));
-  const remove = (id: string) => update((t) => ({ ...t, aufgaben: t.aufgaben.filter((a) => a.id !== id) }));
+    update((t) => ({ ...t, [field]: t[field].map((a) => (a.id === id ? { ...a, erledigt: !a.erledigt } : a)) }));
+  const remove = (id: string) => update((t) => ({ ...t, [field]: t[field].filter((a) => a.id !== id) }));
 
   return (
-    <article className="card tile-panel">
-      <h3>Checkliste</h3>
+    <>
       <div className="composer task-add">
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && add()}
-          placeholder="z. B. Hausarbeit Modul 2 abgeben"
+          placeholder={labels.placeholder}
         />
         <input type="date" value={frist} onChange={(e) => setFrist(e.target.value)} title="Frist (optional)" />
         <button className="primary" onClick={add} disabled={!text.trim()}>Hinzufügen</button>
       </div>
-      {sorted.length === 0 && <p>Noch keine Aufgaben. Sammle hier, was bis zum Abschluss erledigt sein muss.</p>}
+      {sorted.length === 0 && <p>Noch nichts eingetragen. {labels.empty}</p>}
       <ul className="list">
         {sorted.map((a) => (
           <li key={a.id} className={a.erledigt ? "reminder done" : "reminder"}>
@@ -416,11 +503,36 @@ function Tasks({ data, update }: PanelProps) {
           </li>
         ))}
       </ul>
+    </>
+  );
+}
+
+function Homepage({ data, update }: PanelProps) {
+  const set = (key: "homepageUrl" | "codeUrl") => (e: ChangeEvent<HTMLInputElement>) => update((t) => ({ ...t, [key]: e.target.value.trim() }));
+  const open = (url: string) => /^https?:\/\//.test(url) && openUrl(url);
+  return (
+    <article className="card tile-panel">
+      <h3>Meine Homepage</h3>
+      <div className="form-grid">
+        <label className="field">Adresse der Homepage<input value={data.homepageUrl} onChange={set("homepageUrl")} placeholder="https://…" /></label>
+        <label className="field">Code (z. B. GitHub)<input value={data.codeUrl} onChange={set("codeUrl")} placeholder="https://github.com/…" /></label>
+      </div>
+      <div className="actions">
+        <button onClick={() => open(data.homepageUrl)} disabled={!/^https?:\/\//.test(data.homepageUrl)}>🌐 Homepage öffnen</button>
+        <button onClick={() => open(data.codeUrl)} disabled={!/^https?:\/\//.test(data.codeUrl)}>💻 Code öffnen</button>
+      </div>
+      <h4>Baustellen</h4>
+      <TaskList
+        data={data}
+        update={update}
+        field="baustellen"
+        text={{ title: "Baustellen", placeholder: "z. B. Startseite: Bild austauschen", empty: "Notiere hier, woran du an der Homepage noch arbeiten willst." }}
+      />
     </article>
   );
 }
 
-function Journal({ data, update }: PanelProps) {
+function Journal({ data, update, text: labels }: PanelProps & { text: BoardConfig["journal"] }) {
   const [titel, setTitel] = useState("");
   const [text, setText] = useState("");
   const [open, setOpen] = useState<string | null>(null);
@@ -439,9 +551,9 @@ function Journal({ data, update }: PanelProps) {
 
   return (
     <article className="card tile-panel">
-      <h3>Lernjournal</h3>
-      <label className="field wide">Überschrift<input value={titel} onChange={(e) => setTitel(e.target.value)} placeholder="z. B. Erkenntnisse aus Modul 2" /></label>
-      <label className="field wide">Was habe ich gelernt, was beschäftigt mich?<textarea className="tall" value={text} onChange={(e) => setText(e.target.value)} /></label>
+      <h3>{labels.title}</h3>
+      <label className="field wide">Überschrift<input value={titel} onChange={(e) => setTitel(e.target.value)} placeholder={labels.placeholder} /></label>
+      <label className="field wide">{labels.label}<textarea className="tall" value={text} onChange={(e) => setText(e.target.value)} /></label>
       <button className="primary" onClick={add}>Eintrag speichern</button>
 
       <h4>Einträge</h4>
