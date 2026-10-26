@@ -5,6 +5,8 @@ import { getSource, isSourceReady, loadMailContent, loadMails, type Source } fro
 import { openMacReply } from "../mac";
 import { getApiKey, getSetting, setSetting } from "../settings";
 import { AREAS, type AreaId } from "../areas";
+import Cleanup from "./Cleanup";
+import RemindButton from "./RemindButton";
 
 type Filter = AreaId | "alle";
 
@@ -31,6 +33,7 @@ export default function Mails() {
   const [sorting, setSorting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [tab, setTab] = useState<"unread" | "cleanup">("unread");
 
   async function refresh(from: Source = source) {
     setLoading(true);
@@ -97,6 +100,29 @@ export default function Mails() {
     />
   );
 
+  const tabs = (
+    <div className="tabs">
+      <button className={tab === "unread" ? "tab active" : "tab"} onClick={() => setTab("unread")}>Ungelesen</button>
+      <button className={tab === "cleanup" ? "tab active" : "tab"} onClick={() => setTab("cleanup")}>Aufräumen</button>
+    </div>
+  );
+
+  if (tab === "cleanup") {
+    return (
+      <section>
+        <div className="row">
+          <h2>Mails</h2>
+        </div>
+        {tabs}
+        {source === "mac" ? (
+          <Cleanup />
+        ) : (
+          <p className="hint">Aufräumen geht direkt in Apple Mail. Stell dafür unter Einstellungen die Quelle auf „Vom Mac“.</p>
+        )}
+      </section>
+    );
+  }
+
   return (
     <section>
       <div className="row">
@@ -108,6 +134,7 @@ export default function Mails() {
           </button>
         </div>
       </div>
+      {tabs}
 
       <div className="chips">
         <button className={filter === "alle" ? "chip active" : "chip"} onClick={() => setFilter("alle")}>Alle</button>
@@ -133,9 +160,18 @@ export default function Mails() {
             {payments.map((m) => {
               const p = sorted[m.id].payment!;
               return (
-                <li key={m.id}>
-                  <strong>{p.amount ?? "Betrag offen"}</strong> {m.subject}
-                  <span className="meta">{m.from}{p.due ? ` · fällig ${p.due}` : ""}</span>
+                <li key={m.id} className="cleanup-item">
+                  <div>
+                    <strong>{p.amount ?? "Betrag offen"}</strong> {m.subject}
+                    <span className="meta">{m.from}{p.due ? ` · fällig ${p.due}` : ""}</span>
+                  </div>
+                  {source === "mac" && (
+                    <RemindButton
+                      title={`Zahlen: ${p.amount ?? ""} ${m.subject}`.replace(/\s+/g, " ")}
+                      notes={`Von ${m.from}${p.due ? `, fällig ${p.due}` : ""}`}
+                      mailId={m.id}
+                    />
+                  )}
                 </li>
               );
             })}
@@ -190,14 +226,17 @@ function MailCard({ mail, sort, source, open, onToggle }: CardProps) {
           <div className="mail-subject">{mail.subject}</div>
           <p className="mail-summary">{sort?.summary ?? mail.snippet}</p>
         </div>
-        <button className="ghost">{open ? "Schließen" : "Antworten"}</button>
+        <div className="actions">
+          {source === "mac" && <RemindButton title={`Antworten: ${mail.subject}`} notes={`Mail von ${mail.from}`} mailId={mail.id} />}
+          <button className="ghost">{open ? "Schließen" : "Antworten"}</button>
+        </div>
       </div>
       {open && <ReplyPanel mail={mail} source={source} />}
     </article>
   );
 }
 
-function ReplyPanel({ mail, source }: { mail: MailSummary; source: Source }) {
+export function ReplyPanel({ mail, source }: { mail: MailSummary; source: Source }) {
   const [wish, setWish] = useState("");
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);

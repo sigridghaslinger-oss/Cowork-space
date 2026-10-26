@@ -31,3 +31,75 @@ export async function openMacReply(id: string, text: string): Promise<boolean> {
 export async function captureMacWindow(appName: string): Promise<string> {
   return invoke<string>("mac_capture_window", { appName });
 }
+
+// Posteingang fürs Aufräumen: neueste Mails mit Status (gelesen, beantwortet, Fähnchen), ohne Inhalt.
+export type InboxMail = {
+  id: string;
+  from: string;
+  address: string;
+  subject: string;
+  date: Date;
+  read: boolean;
+  replied: boolean;
+  flagged: boolean;
+};
+export type InboxOverview = { total: number; unread: number; mails: InboxMail[] };
+
+type RawInboxMail = Omit<InboxMail, "from" | "address" | "date"> & { sender: string; date: number };
+
+export async function getMacInbox(max = 1500): Promise<InboxOverview> {
+  const raw = await invoke<{ total: number; unread: number; mails: RawInboxMail[] }>("mac_inbox_overview", { max });
+  return {
+    ...raw,
+    mails: raw.mails.map(({ sender, date, ...m }) => {
+      const address = (sender.match(/<([^>]+)>/)?.[1] ?? sender).trim().toLowerCase();
+      const from = sender.replace(/\s*<.*>$/, "").replace(/"/g, "").trim() || address;
+      return { ...m, from, address, date: new Date(date) };
+    }),
+  };
+}
+
+// Die folgenden Aktionen ändern Mails in Apple Mail. Sie werden nur nach Sigrids Bestätigung aufgerufen.
+export async function markMacRead(ids: string[]): Promise<number> {
+  return invoke<number>("mac_mark_read", { ids });
+}
+
+export async function setMacFlag(ids: string[], flagged: boolean): Promise<number> {
+  return invoke<number>("mac_set_flag", { ids, flagged });
+}
+
+// Verschiebt ins Archiv des jeweiligen Kontos; skipped = Konten ohne Archiv-Ordner.
+export async function archiveMac(ids: string[]): Promise<{ moved: number; skipped: number }> {
+  return invoke("mac_archive", { ids });
+}
+
+// Verschiebt in den Papierkorb des Kontos (wie die Löschen-Taste in Apple Mail).
+export async function deleteMac(ids: string[]): Promise<number> {
+  return invoke<number>("mac_delete", { ids });
+}
+
+export async function getMacUnsubscribeLink(id: string): Promise<string | null> {
+  return invoke<string | null>("mac_unsubscribe_link", { id });
+}
+
+// Offene Erinnerungen aus der Erinnerungen-App (alle Listen).
+export type Reminder = { id: string; title: string; list: string; due: Date | null; notes: string };
+
+export async function getMacReminders(): Promise<Reminder[]> {
+  const raw = await invoke<(Omit<Reminder, "due"> & { due: number | null })[]>("mac_open_reminders");
+  return raw.map((r) => ({ ...r, due: r.due ? new Date(r.due) : null }));
+}
+
+export async function completeMacReminder(id: string): Promise<void> {
+  await invoke("mac_complete_reminder", { id });
+}
+
+// Legt eine Erinnerung in der Standardliste an. Mit mailId kommt ein Link zur Mail in die Notiz.
+export async function createMacReminder(r: { title: string; notes?: string; due?: Date; mailId?: string }): Promise<void> {
+  await invoke("mac_create_reminder", {
+    title: r.title,
+    notes: r.notes ?? "",
+    dueMs: r.due?.getTime() ?? null,
+    mailId: r.mailId ?? null,
+  });
+}

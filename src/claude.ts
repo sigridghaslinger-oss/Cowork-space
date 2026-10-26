@@ -101,6 +101,67 @@ ${list}`,
   return response.parsed_output.mails;
 }
 
+const InboxCheckSchema = z.object({
+  senders: z.array(
+    z.object({
+      address: z.string(),
+      kind: z.enum(["newsletter", "werbung", "dienst", "person"]),
+    }),
+  ),
+  needsReply: z.array(z.string()),
+});
+
+export type SenderKind = z.infer<typeof InboxCheckSchema>["senders"][number]["kind"];
+
+// Fürs Aufräumen: Welche Absender sind Newsletter/Werbung, und welche Mails warten auf eine Antwort?
+// Es gehen nur Absender und Betreffzeilen an Claude, kein Mailinhalt.
+export async function checkInbox(
+  apiKey: string,
+  senders: { address: string; name: string; subjects: string[] }[],
+  replyCandidates: { id: string; from: string; subject: string }[],
+): Promise<{ kinds: Record<string, SenderKind>; needsReply: string[] }> {
+  const senderList = senders
+    .map((s) => `<absender adresse="${s.address}">\nName: ${s.name}\nBetreffs: ${s.subjects.join(" | ")}\n</absender>`)
+    .join("\n");
+  const mailList = replyCandidates
+    .map((m) => `<mail id="${m.id}">\nVon: ${m.from}\nBetreff: ${m.subject}\n</mail>`)
+    .join("\n");
+  const response = await client(apiKey).beta.messages.parse({
+    model: MODEL,
+    max_tokens: 16000,
+    output_config: { effort: "low", format: betaZodOutputFormat(InboxCheckSchema) },
+    betas: ["server-side-fallback-2026-07-01"],
+    fallbacks: "default",
+    system: SYSTEM_PROMPT,
+    messages: [
+      {
+        role: "user",
+        content: `Ich räume meinen Posteingang auf. Ich bin Lehrerin.
+
+1. senders: Ordne jeden Absender ein.
+- "newsletter": regelmäßige Rundschreiben, Infomails, Vereins- oder Firmennews, die ich abonniert habe.
+- "werbung": Angebote, Rabatte, Shops, Marketing.
+- "dienst": automatische Mails, die ich brauche (Rechnungen, Bestellungen, Bank, Termine, Schulsysteme wie EduPage, Passwörter).
+- "person": echte Menschen, Kolleginnen, Eltern, Schulleitung, Behörden mit persönlicher Nachricht.
+
+<absender_liste>
+${senderList}
+</absender_liste>
+
+2. needsReply: Gib die IDs der Mails zurück, bei denen jemand wirklich eine Antwort oder Rückmeldung von mir erwartet (Frage, Bitte, Terminabstimmung). Keine reinen Infos, Danke-Mails oder Rundmails.
+
+<mails>
+${mailList}
+</mails>`,
+      },
+    ],
+  });
+  if (!response.parsed_output) throw new Error("Claude konnte den Posteingang nicht prüfen.");
+  const kinds: Record<string, SenderKind> = {};
+  for (const s of response.parsed_output.senders) kinds[s.address.toLowerCase()] = s.kind;
+  return { kinds, needsReply: response.parsed_output.needsReply };
+}
+
 export async function streamReplyDraft(
   apiKey: string,
   mail: MailSummary,

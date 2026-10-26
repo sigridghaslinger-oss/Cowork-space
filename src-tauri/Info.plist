@@ -7,6 +7,6 @@
   <key>NSCalendarsUsageDescription</key>
   <string>Cowork Space zeigt deine Termine und deinen Stundenplan in der Tagesübersicht an.</string>
   <key>NSAppleEventsUsageDescription</key>
-  <string>Cowork Space liest ungelesene Mails aus der Mail-App, damit Claude sie zusammenfassen kann, und holt „Mein Schulplan“ nach vorne, um die Woche abzufotografieren.</string>
+  <string>Cowork Space liest ungelesene Mails aus der Mail-App, damit Claude sie zusammenfassen kann, und holt „Mein Schulplan“ nach vorne, um die Woche abzufotografieren. In der Erinnerungen-App zeigt es fällige Erinnerungen an und legt neue an, wenn du darum bittest.</string>
 </dict>
 </plist>

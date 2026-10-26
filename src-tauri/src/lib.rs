@@ -4,6 +4,8 @@ mod mac_calendar;
 #[cfg(target_os = "macos")]
 mod mac_mail;
 #[cfg(target_os = "macos")]
+mod mac_reminders;
+#[cfg(target_os = "macos")]
 mod mac_screen;
 
 #[cfg(target_os = "macos")]
@@ -41,6 +43,85 @@ async fn mac_open_reply(id: String, text: String) -> Result<bool, String> {
 
 #[cfg(target_os = "macos")]
 #[tauri::command]
+async fn mac_inbox_overview(max: u32) -> Result<mac_mail::InboxOverview, String> {
+    tauri::async_runtime::spawn_blocking(move || mac_mail::inbox_overview(max))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[cfg(target_os = "macos")]
+#[tauri::command]
+async fn mac_mark_read(ids: Vec<String>) -> Result<u32, String> {
+    tauri::async_runtime::spawn_blocking(move || mac_mail::mark_read(&ids))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[cfg(target_os = "macos")]
+#[tauri::command]
+async fn mac_set_flag(ids: Vec<String>, flagged: bool) -> Result<u32, String> {
+    tauri::async_runtime::spawn_blocking(move || mac_mail::set_flag(&ids, flagged))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[cfg(target_os = "macos")]
+#[tauri::command]
+async fn mac_archive(ids: Vec<String>) -> Result<mac_mail::ArchiveResult, String> {
+    tauri::async_runtime::spawn_blocking(move || mac_mail::archive(&ids))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[cfg(target_os = "macos")]
+#[tauri::command]
+async fn mac_delete(ids: Vec<String>) -> Result<u32, String> {
+    tauri::async_runtime::spawn_blocking(move || mac_mail::delete(&ids))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[cfg(target_os = "macos")]
+#[tauri::command]
+async fn mac_unsubscribe_link(id: String) -> Result<Option<String>, String> {
+    tauri::async_runtime::spawn_blocking(move || mac_mail::unsubscribe_link(&id))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[cfg(target_os = "macos")]
+#[tauri::command]
+async fn mac_open_reminders() -> Result<Vec<mac_reminders::MacReminder>, String> {
+    tauri::async_runtime::spawn_blocking(mac_reminders::open_reminders)
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[cfg(target_os = "macos")]
+#[tauri::command]
+async fn mac_complete_reminder(id: String) -> Result<bool, String> {
+    tauri::async_runtime::spawn_blocking(move || mac_reminders::complete(&id))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[cfg(target_os = "macos")]
+#[tauri::command]
+async fn mac_create_reminder(
+    title: String,
+    notes: String,
+    due_ms: Option<f64>,
+    mail_id: Option<String>,
+) -> Result<bool, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        mac_reminders::create(&title, &notes, due_ms, mail_id.as_deref())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[cfg(target_os = "macos")]
+#[tauri::command]
 async fn mac_capture_window(app_name: String) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || mac_screen::capture_app_window(&app_name))
         .await
@@ -69,6 +150,15 @@ pub fn run() {
         mac_unread_mails,
         mac_mail_content,
         mac_open_reply,
+        mac_inbox_overview,
+        mac_mark_read,
+        mac_set_flag,
+        mac_archive,
+        mac_delete,
+        mac_unsubscribe_link,
+        mac_open_reminders,
+        mac_complete_reminder,
+        mac_create_reminder,
         mac_capture_window
     ]);
     #[cfg(not(target_os = "macos"))]
