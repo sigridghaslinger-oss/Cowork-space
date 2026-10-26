@@ -304,17 +304,23 @@ table.grades.limits input { width: 90px; padding: 6px 8px; }
 .reminder input { width: auto; margin-top: 3px; accent-color: var(--accent); }
 .list .meta.overdue { color: var(--danger); }
 
-/* Heute: aufklappbare Kästen */
-.today > .card, .today > .fold { margin-top: 14px; }
-.fold { padding: 0; }
-.fold > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 16px 20px; }
-.fold > summary::-webkit-details-marker { display: none; }
-.fold > summary::before { content: "›"; font-size: 20px; line-height: 1; color: var(--muted); transition: transform 0.15s; }
-.fold[open] > summary::before { transform: rotate(90deg); }
-.fold > summary h3 { margin: 0; }
-.fold .count { margin-left: auto; min-width: 24px; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 600; text-align: center; }
-.fold-body { padding: 0 20px 18px 20px; }
-.fold-body > .row { gap: 16px; align-items: flex-start; }
+/* Heute: Kacheln, die ihren Inhalt darunter öffnen */
+.today > .card { margin-top: 14px; border-radius: 6px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-top: 14px; }
+.content button.tile {
+  display: flex; flex-direction: column; align-items: stretch; gap: 6px; text-align: left;
+  padding: 14px 16px; min-height: 112px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--panel); box-shadow: var(--shadow); cursor: pointer;
+}
+.content button.tile:hover { border-color: var(--accent); }
+.content button.tile.active { border: 2px solid var(--accent); background: var(--accent-soft); padding: 13px 15px; }
+.tile-head { display: flex; justify-content: space-between; align-items: center; }
+.tile-icon { font-size: 20px; }
+.tile-count { font-size: 22px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.tile-title { font-weight: 600; font-size: 14px; color: var(--text); }
+.tile-preview { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile-panel { border-radius: 6px; }
+.tile-panel > .row { gap: 16px; align-items: flex-start; }
 
 .events > li { display: flex; gap: 14px; align-items: baseline; }
 .event-time { flex: 0 0 96px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); }
@@ -336,7 +342,7 @@ table.grades.limits input { width: 90px; padding: 6px 8px; }
 
 /* Tagesplan als Kacheln */
 .md { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-top: 14px; }
-.plan-section { background: var(--accent-soft); border-radius: 12px; padding: 14px 16px; font-size: 14px; line-height: 1.5; }
+.plan-section { background: var(--accent-soft); border-radius: 6px; padding: 14px 16px; font-size: 14px; line-height: 1.5; }
 .plan-section h4 { margin: 0 0 8px; font-size: 15px; }
 .plan-section ul, .plan-section ol { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
 .plan-section strong { color: var(--accent); }

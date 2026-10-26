@@ -79,37 +79,15 @@ function EventList({ events, empty }: { events: CalendarEvent[]; empty: string }
   );
 }
 
-// Aufklappbarer Kasten; ob er offen ist, merkt sich die App pro Kasten.
-function Fold({ id, title, count, children }: { id: string; title: string; count?: number; children: ReactNode }) {
-  const key = `fold-${id}`;
-  const [open, setOpen] = useState(() => {
-    try {
-      return localStorage.getItem(key) === "1";
-    } catch {
-      return false;
-    }
-  });
-  return (
-    <details
-      className="card fold"
-      open={open}
-      onToggle={(e) => {
-        const next = (e.currentTarget as HTMLDetailsElement).open;
-        setOpen(next);
-        try {
-          localStorage.setItem(key, next ? "1" : "0");
-        } catch {
-          // Ohne Speicher bleibt es eben beim nächsten Start zu.
-        }
-      }}
-    >
-      <summary>
-        <h3>{title}</h3>
-        {count !== undefined && <span className="count">{count}</span>}
-      </summary>
-      <div className="fold-body">{children}</div>
-    </details>
-  );
+type TileId = "tomorrow" | "week" | "reminders" | "mails" | "plan";
+const TILE_KEY = "today-tile";
+
+function savedTile(): TileId | null {
+  try {
+    return (localStorage.getItem(TILE_KEY) as TileId) || null;
+  } catch {
+    return null;
+  }
 }
 
 export default function Today() {
@@ -124,6 +102,17 @@ export default function Today() {
   const [error, setError] = useState<string | null>(null);
   const [plan, setPlan] = useState("");
   const [planning, setPlanning] = useState(false);
+  const [tile, setTile] = useState<TileId | null>(savedTile);
+
+  function toggleTile(id: TileId) {
+    const next = tile === id ? null : id;
+    setTile(next);
+    try {
+      localStorage.setItem(TILE_KEY, next ?? "");
+    } catch {
+      // Ohne Speicher startet die Seite eben mit allen Kacheln zu.
+    }
+  }
 
   async function refresh(from: Source = source) {
     setLoading(true);
@@ -189,6 +178,18 @@ export default function Today() {
   const today = startOfDay();
   const weekCount = week.reduce((n, d) => n + d.events.length, 0);
 
+  const first = (list: CalendarEvent[]) =>
+    list.length ? `${list[0].allDay ? "ganztägig" : time(list[0].start)} ${list[0].title}` : "keine Termine";
+  const tiles: { id: TileId; icon: string; title: string; count?: number; preview: string }[] = [
+    { id: "tomorrow", icon: "📅", title: "Termine morgen", count: tomorrow.length, preview: first(tomorrow) },
+    { id: "week", icon: "🗓️", title: "Termine der Woche", count: weekCount, preview: `${weekCount} Termine bis Sonntag` },
+    ...(source === "mac"
+      ? [{ id: "reminders" as const, icon: "⏰", title: "Erinnerungen", count: due.length, preview: due[0]?.title ?? "nichts fällig" }]
+      : []),
+    { id: "mails", icon: "✉️", title: "Ungelesene Mails", count: mails.length, preview: mails[0] ? `${mails[0].from}: ${mails[0].subject}` : "keine neuen Mails" },
+    { id: "plan", icon: "✨", title: "Tagesplan", preview: plan ? "fertig erstellt" : "von Claude planen lassen" },
+  ];
+
   if (connected === false) {
     return (
       <section>
@@ -211,27 +212,47 @@ export default function Today() {
         {!loading && <EventList events={events} empty="Heute keine Termine." />}
       </article>
 
-      <Fold id="tomorrow" title="Termine morgen" count={tomorrow.length}>
-        <p className="hint">{dayLabel(startOfDay(1))}</p>
-        <EventList events={tomorrow} empty="Morgen keine Termine." />
-      </Fold>
+      <div className="tiles">
+        {tiles.map((t) => (
+          <button key={t.id} className={tile === t.id ? "tile active" : "tile"} onClick={() => toggleTile(t.id)}>
+            <span className="tile-head">
+              <span className="tile-icon">{t.icon}</span>
+              {t.count !== undefined && <span className="tile-count">{t.count}</span>}
+            </span>
+            <span className="tile-title">{t.title}</span>
+            <span className="tile-preview">{t.preview}</span>
+          </button>
+        ))}
+      </div>
 
-      <Fold id="week" title="Termine der Woche" count={weekCount}>
-        <div className="week">
-          {week.map(({ day, events: dayEvents }) => (
-            <div key={day.getTime()} className={day.getTime() === today.getTime() ? "week-day today" : "week-day"}>
-              <h4>
-                {day.toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "numeric" })}
-                {day.getTime() === today.getTime() && " · heute"}
-              </h4>
-              <EventList events={dayEvents} empty="Keine Termine." />
-            </div>
-          ))}
-        </div>
-      </Fold>
+      {tile === "tomorrow" && (
+        <article className="card tile-panel">
+          <h3>Termine morgen</h3>
+          <p className="hint">{dayLabel(startOfDay(1))}</p>
+          <EventList events={tomorrow} empty="Morgen keine Termine." />
+        </article>
+      )}
 
-      {source === "mac" && (
-        <Fold id="reminders" title="Erinnerungen" count={due.length}>
+      {tile === "week" && (
+        <article className="card tile-panel">
+          <h3>Termine der Woche</h3>
+          <div className="week">
+            {week.map(({ day, events: dayEvents }) => (
+              <div key={day.getTime()} className={day.getTime() === today.getTime() ? "week-day today" : "week-day"}>
+                <h4>
+                  {day.toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "numeric" })}
+                  {day.getTime() === today.getTime() && " · heute"}
+                </h4>
+                <EventList events={dayEvents} empty="Keine Termine." />
+              </div>
+            ))}
+          </div>
+        </article>
+      )}
+
+      {tile === "reminders" && (
+        <article className="card tile-panel">
+          <h3>Erinnerungen</h3>
           {due.length === 0 && <p>Heute ist nichts fällig.</p>}
           <ul className="list">
             {due.map((r) => (
@@ -247,34 +268,40 @@ export default function Today() {
             ))}
           </ul>
           {undated > 0 && <p className="hint">Dazu {undated} offene Erinnerungen ohne Datum.</p>}
-        </Fold>
+        </article>
       )}
 
-      <Fold id="mails" title="Ungelesene Mails" count={mails.length}>
-        {mails.length === 0 && <p>Keine neuen Mails.</p>}
-        <ul className="list mails-today">
-          {mails.map((m) => (
-            <li key={m.id}>
-              <div className="mail-line">
-                <strong>{m.from}</strong>
-                <span className="meta-inline">{time(m.date)}</span>
-              </div>
-              <div className="mail-subject">{m.subject}</div>
-              <MailBody mail={m} source={source} />
-            </li>
-          ))}
-        </ul>
-      </Fold>
+      {tile === "mails" && (
+        <article className="card tile-panel">
+          <h3>Ungelesene Mails</h3>
+          {mails.length === 0 && <p>Keine neuen Mails.</p>}
+          <ul className="list mails-today">
+            {mails.map((m) => (
+              <li key={m.id}>
+                <div className="mail-line">
+                  <strong>{m.from}</strong>
+                  <span className="meta-inline">{time(m.date)}</span>
+                </div>
+                <div className="mail-subject">{m.subject}</div>
+                <MailBody mail={m} source={source} />
+              </li>
+            ))}
+          </ul>
+        </article>
+      )}
 
-      <Fold id="plan" title="Tagesplan von Claude">
-        <div className="row">
-          <p>Claude plant deinen Tag mit Terminen und fälligen Erinnerungen und erinnert dich an Zahlungen aus deinen Mails.</p>
-          <button className="primary" onClick={makePlan} disabled={planning || loading}>
-            {planning ? "Plant…" : plan ? "Neu planen" : "Tagesplan erstellen"}
-          </button>
-        </div>
-        {plan && <Markdown text={plan} sectionClass="plan-section" />}
-      </Fold>
+      {tile === "plan" && (
+        <article className="card tile-panel">
+          <h3>Tagesplan von Claude</h3>
+          <div className="row">
+            <p>Claude plant deinen Tag mit Terminen und fälligen Erinnerungen und erinnert dich an Zahlungen aus deinen Mails.</p>
+            <button className="primary" onClick={makePlan} disabled={planning || loading}>
+              {planning ? "Plant…" : plan ? "Neu planen" : "Tagesplan erstellen"}
+            </button>
+          </div>
+          {plan && <Markdown text={plan} sectionClass="plan-section" />}
+        </article>
+      )}
     </section>
   );
 }
