@@ -13,10 +13,11 @@ type Props = {
   area: Area;
   chat: ChatState;
   setChat: (area: AreaId, update: (c: ChatState) => ChatState) => void;
+  hideTitle?: boolean;
 };
 
 // Jeder Bereich hat seinen eigenen Gesprächsverlauf; der Zustand liegt in App.
-export default function Chat({ area, chat, setChat: setChatFor }: Props) {
+export default function Chat({ area, chat, setChat: setChatFor, hideTitle }: Props) {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,9 +77,11 @@ export default function Chat({ area, chat, setChat: setChatFor }: Props) {
 
   return (
     <section className="chat">
-      <h2>
-        {area.icon} {area.label}
-      </h2>
+      {!hideTitle && (
+        <h2>
+          {area.icon} {area.label}
+        </h2>
+      )}
       <div className="messages">
         {chat.bubbles.length === 0 && (
           <div className="empty">

@@ -49,3 +49,7 @@ export async function loadMailContent(source: Source, mail: MailSummary): Promis
   if (source === "google") return mail.snippet;
   return (await getMacMailContent(mail.id)) || mail.snippet;
 }
+
+export async function loadEventsForDay(source: Source, day: Date): Promise<CalendarEvent[]> {
+  return source === "mac" ? getMacEventsForDay(day) : getEventsForDay(day);
+}

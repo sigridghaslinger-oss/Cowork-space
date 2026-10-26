@@ -120,3 +120,35 @@ ${content}
 </mail>`;
   await streamReply(apiKey, [{ role: "user", content: prompt }], onText);
 }
+
+export async function streamCorrectionPlan(apiKey: string, context: string, onText: (delta: string) => void) {
+  const prompt = `Ich bin Lehrerin und muss Schularbeiten korrigieren. Erstelle mir einen realistischen Korrekturplan.
+
+${context}
+
+Regeln:
+- Verteile die offenen Arbeiten auf die Tage bis zur Rückgabe, nutze freie Zeiten zwischen und nach meinen Terminen.
+- Plane pro Tag konkrete Zeitfenster (z. B. „15:30–17:00: 6 Arbeiten 4b Mathematik“) und rechne mit etwa 10–15 Minuten pro Arbeit, wenn nichts anderes angegeben ist.
+- Wochenenden nur, wenn es sonst nicht reicht, und dann kurz.
+- Plane einen Puffer vor der Rückgabe ein und Zeit für Notenschlüssel und Eintragen.
+- Wenn es zeitlich knapp wird, sag es deutlich und schlag eine Lösung vor.
+Antworte kurz, als Liste nach Tagen, ohne Einleitung.`;
+  await streamReply(apiKey, [{ role: "user", content: prompt }], onText);
+}
+
+export async function streamClassbook(
+  apiKey: string,
+  klasse: string,
+  fach: string,
+  notes: string,
+  withPlanning: boolean,
+  onText: (delta: string) => void,
+) {
+  const prompt = `Ich bin Lehrerin an einer österreichischen Mittelschule. Klasse: ${klasse || "–"}, Fach: ${fach || "–"}.
+Meine Stichworte zur Stunde: ${notes}
+
+Schreib mir:
+1. **Klassenbucheintrag**: ein bis zwei knappe Zeilen zum Lehrstoff, so wie man sie ins Klassenbuch (EduPage) einträgt.
+${withPlanning ? "2. **Stundenplanung**: Lernziel, Ablauf mit Zeitangaben (Einstieg, Erarbeitung, Sicherung), Methoden, Material, Hausübung falls passend.\n" : ""}Keine Einleitung, keine Schülernamen.`;
+  await streamReply(apiKey, [{ role: "user", content: prompt }], onText);
+}

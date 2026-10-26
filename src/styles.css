@@ -208,3 +208,33 @@ button.primary:disabled { opacity: 0.45; cursor: default; }
 @media (prefers-color-scheme: dark) {
   .card.payments { background: color-mix(in srgb, #fbf3e4 12%, var(--panel)); }
 }
+
+/* Schule */
+.tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+.content button.tab {
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  padding: 8px 14px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.content button.tab.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+section.chat .tabs { flex-shrink: 0; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.form-grid .field + .field { margin-top: 0; }
+.field.wide { max-width: none; margin-bottom: 10px; }
+.field.wide textarea { min-height: 80px; resize: vertical; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 14px; margin-bottom: 12px; }
+.check input { accent-color: var(--accent); }
+.card.exam { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+.progress { height: 8px; border-radius: 999px; background: var(--panel-soft); overflow: hidden; margin: 6px 0 2px; }
+.progress > div { height: 100%; background: var(--accent); border-radius: 999px; transition: width 0.2s ease; }
+.stepper { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.content .stepper button { width: 32px; height: 32px; padding: 0; font-size: 16px; }
+.badge { background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 600; }
+table.grades { border-collapse: collapse; font-size: 14px; }
+table.grades td { padding: 6px 16px 6px 0; border-bottom: 1px solid var(--border); }
+.plan-text.output { margin-top: 14px; padding: 14px; background: var(--panel-soft); border-radius: 12px; }
+section > .card + .card { margin-top: 16px; }
