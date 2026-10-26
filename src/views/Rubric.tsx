@@ -23,6 +23,8 @@ import {
   describeRubric,
   emptyInput,
   evaluate,
+  forLevel,
+  mergeLevelKeys,
   fmtNote,
   fromDraft,
   itemApplies,
@@ -161,17 +163,22 @@ export default function Rubrics() {
 
 const ARTEN = ["Schularbeit", "Test", "Diktat"];
 
+type KeyInput = { files: { name: string; file: ScanFile }[]; text: string };
+const emptyKey = (): KeyInput => ({ files: [], text: "" });
+const hasKey = (k: KeyInput) => k.files.length > 0 || !!k.text.trim();
+
 // Neue Schularbeit, neuer Test oder neues Diktat: Eckdaten eintragen und den Notenschlüssel hochladen.
+// Wahlweise ein Notenschlüssel für alle oder je einer für Standard und AHS.
 function NewExam({ onDone, onCancel }: { onDone: (r: Rubric) => void; onCancel: () => void }) {
   const [art, setArt] = useState("Schularbeit");
   const [title, setTitle] = useState("");
   const [klasse, setKlasse] = useState("");
   const [datum, setDatum] = useState("");
-  const [files, setFiles] = useState<{ name: string; file: ScanFile }[]>([]);
-  const [text, setText] = useState("");
+  const [twoKeys, setTwoKeys] = useState(false);
+  const [keyStd, setKeyStd] = useState<KeyInput>(emptyKey);
+  const [keyAhs, setKeyAhs] = useState<KeyInput>(emptyKey);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pickKey, setPickKey] = useState(0);
 
   // Was Sigrid oben einträgt, gilt vor dem, was Claude aus dem Notenschlüssel liest.
   const withBasics = (r: Rubric): Rubric => ({
@@ -181,25 +188,7 @@ function NewExam({ onDone, onCancel }: { onDone: (r: Rubric) => void; onCancel: 
     datum: datum || r.datum,
   });
 
-  async function pick(list: FileList | null) {
-    if (!list) return;
-    setError(null);
-    try {
-      const added = await Promise.all(
-        Array.from(list).map(async (f) => ({
-          name: f.name,
-          file: (f.type === "application/pdf"
-            ? { kind: "pdf", data: await fileToBase64(f) }
-            : { kind: "image", data: await imageToJpeg(f) }) as ScanFile,
-        })),
-      );
-      setFiles([...files, ...added]);
-    } catch {
-      setError("Eine Datei konnte nicht gelesen werden. Bitte als PDF, JPEG oder PNG speichern. Word-Dateien vorher als PDF sichern.");
-    } finally {
-      setPickKey((k) => k + 1);
-    }
-  }
+  const canRun = twoKeys ? hasKey(keyStd) && hasKey(keyAhs) : hasKey(keyStd);
 
   async function run() {
     const apiKey = await getApiKey();
@@ -209,9 +198,28 @@ function NewExam({ onDone, onCancel }: { onDone: (r: Rubric) => void; onCancel: 
     }
     setBusy(true);
     setError(null);
+    const read = async (k: KeyInput, level?: string) =>
+      fromDraft(
+        await rubricFromKey(apiKey, {
+          files: k.files.map((f) => f.file),
+          text: k.text.trim() || undefined,
+          art: level ? `${art}, Niveau ${level}` : art,
+        }),
+      );
     try {
-      const draft = await rubricFromKey(apiKey, { files: files.map((f) => f.file), text: text.trim() || undefined, art });
-      onDone(withBasics(fromDraft(draft)));
+      if (twoKeys) {
+        const [std, ahs] = await Promise.all([read(keyStd, "Standard"), read(keyAhs, "AHS")]);
+        onDone(
+          withBasics(
+            mergeLevelKeys([
+              { label: "Standard", rubric: std },
+              { label: "AHS", rubric: ahs },
+            ]),
+          ),
+        );
+      } else {
+        onDone(withBasics(await read(keyStd)));
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -245,50 +253,102 @@ function NewExam({ onDone, onCancel }: { onDone: (r: Rubric) => void; onCancel: 
         </label>
       </div>
 
-      <div className="scan">
-        <strong>📎 Notenschlüssel mit allen Kriterien hochladen</strong>
-        <p className="hint">
-          PDF oder Fotos, auch mehrere Seiten. Claude liest daraus die Kriterien, Gewichtung und Notengrenzen. Danach kannst du alles prüfen und
-          anpassen.
-        </p>
-        <div className="actions">
-          <label className="file-button">
-            Dateien wählen
-            <input key={pickKey} type="file" multiple accept="application/pdf,image/*" onChange={(e) => pick(e.target.files)} />
-          </label>
-          {files.map((f, i) => (
-            <span key={i} className="pill file-pill">
-              {f.name}
-              <button className="ghost" onClick={() => setFiles(files.filter((_, j) => j !== i))} aria-label="Entfernen">×</button>
-            </span>
-          ))}
+      <label className="check">
+        <input type="checkbox" checked={twoKeys} onChange={(e) => setTwoKeys(e.target.checked)} />
+        Eigener Notenschlüssel für Standard und für AHS
+      </label>
+
+      {twoKeys ? (
+        <div className="key-pair">
+          <KeyUpload title="Notenschlüssel Standard" value={keyStd} onChange={setKeyStd} onError={setError} />
+          <KeyUpload title="Notenschlüssel AHS" value={keyAhs} onChange={setKeyAhs} onError={setError} />
         </div>
-        <label className="field wide">
-          … oder den Notenschlüssel als Text hineinkopieren
-          <textarea className="tall" value={text} onChange={(e) => setText(e.target.value)} />
-        </label>
-      </div>
+      ) : (
+        <KeyUpload title="Notenschlüssel mit allen Kriterien" value={keyStd} onChange={setKeyStd} onError={setError} />
+      )}
 
       <div className="actions">
-        <button className="primary" onClick={run} disabled={busy || (files.length === 0 && !text.trim())}>
-          {busy ? "Claude liest den Notenschlüssel…" : "Kriterien hochladen und anlegen"}
+        <button className="primary" onClick={run} disabled={busy || !canRun}>
+          {busy ? "Claude liest den Notenschlüssel…" : twoKeys ? "Beide Notenschlüssel hochladen und anlegen" : "Kriterien hochladen und anlegen"}
         </button>
         <button onClick={() => onDone(withBasics(blankRubric()))} disabled={busy}>
           Ohne Notenschlüssel, Kriterien selbst eintragen
         </button>
         <button className="ghost" onClick={onCancel} disabled={busy}>Abbrechen</button>
       </div>
+      {twoKeys && !canRun && <p className="hint">Bitte für beide Niveaus einen Notenschlüssel wählen oder hineinkopieren.</p>}
       {busy && <p className="hint">Das dauert etwa eine Minute.</p>}
       {error && <p className="error">{error}</p>}
     </article>
   );
 }
 
+function KeyUpload({
+  title,
+  value,
+  onChange,
+  onError,
+}: {
+  title: string;
+  value: KeyInput;
+  onChange: (k: KeyInput) => void;
+  onError: (e: string | null) => void;
+}) {
+  const [pickKey, setPickKey] = useState(0);
+
+  async function pick(list: FileList | null) {
+    if (!list) return;
+    onError(null);
+    try {
+      const added = await Promise.all(
+        Array.from(list).map(async (f) => ({
+          name: f.name,
+          file: (f.type === "application/pdf"
+            ? { kind: "pdf", data: await fileToBase64(f) }
+            : { kind: "image", data: await imageToJpeg(f) }) as ScanFile,
+        })),
+      );
+      onChange({ ...value, files: [...value.files, ...added] });
+    } catch {
+      onError("Eine Datei konnte nicht gelesen werden. Bitte als PDF, JPEG oder PNG speichern. Word-Dateien vorher als PDF sichern.");
+    } finally {
+      setPickKey((k) => k + 1);
+    }
+  }
+
+  return (
+    <div className="scan">
+      <strong>📎 {title}</strong>
+      <p className="hint">PDF oder Fotos, auch mehrere Seiten. Claude liest daraus Kriterien, Gewichtung und Notengrenzen. Danach kannst du alles prüfen.</p>
+      <div className="actions">
+        <label className="file-button">
+          Dateien wählen
+          <input key={pickKey} type="file" multiple accept="application/pdf,image/*" onChange={(e) => pick(e.target.files)} />
+        </label>
+        {value.files.map((f, i) => (
+          <span key={i} className="pill file-pill">
+            {f.name}
+            <button className="ghost" onClick={() => onChange({ ...value, files: value.files.filter((_, j) => j !== i) })} aria-label="Entfernen">
+              ×
+            </button>
+          </span>
+        ))}
+      </div>
+      <label className="field wide">
+        … oder als Text hineinkopieren
+        <textarea value={value.text} onChange={(e) => onChange({ ...value, text: e.target.value })} />
+      </label>
+    </div>
+  );
+}
+
 function Grader({ rubric }: { rubric: Rubric }) {
-  const fresh = () => Object.fromEntries(rubric.criteria.map((c) => [c.id, emptyInput(c)]));
+  const [level, setLevel] = useState(rubric.levels[0]?.id ?? "");
+  // Mit eigenem Notenschlüssel je Niveau gelten auf jedem Niveau andere Kriterien.
+  const lr = forLevel(rubric, level);
+  const fresh = (rr = lr) => Object.fromEntries(rr.criteria.map((c) => [c.id, emptyInput(c)]));
   const [klasse, setKlasse] = useState("");
   const [nr, setNr] = useState("");
-  const [level, setLevel] = useState(rubric.levels[0]?.id ?? "");
   const [words, setWords] = useState("");
   const [errors, setErrors] = useState("");
   const [values, setValues] = useState<Record<string, CriterionInput>>(fresh);
@@ -315,12 +375,17 @@ function Grader({ rubric }: { rubric: Rubric }) {
     loadLinks(rubric.id).then(setLinks);
   }, [rubric.id]);
 
-  const needWords = usesWords(rubric);
-  const needErrors = usesErrors(rubric);
+  useEffect(() => {
+    setValues((v) => restoreValues(lr, v));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [level]);
+
+  const needWords = usesWords(lr);
+  const needErrors = usesErrors(lr);
   const wordCount = parseInt(words, 10) || 0;
   const errorCount = parseFloat(errors.replace(",", ".")) || 0;
-  const ready = rubric.criteria.length > 0 && (!needWords || wordCount > 0);
-  const r = evaluate(rubric, { level, words: wordCount, errors: errorCount, values });
+  const ready = lr.criteria.length > 0 && (!needWords || wordCount > 0);
+  const r = evaluate(lr, { level, words: wordCount, errors: errorCount, values });
   const suggested = `${r.note}${r.tendency}`;
   const finalNote = own || suggested;
   const finalGrade = parseInt(finalNote, 10);
@@ -329,12 +394,12 @@ function Grader({ rubric }: { rubric: Rubric }) {
 
   const setValue = (id: string, patch: Partial<CriterionInput>) => setValues({ ...values, [id]: { ...values[id], ...patch } });
 
-  function applySuggestion(s: GradeSuggestion, base = values) {
+  function applySuggestion(s: GradeSuggestion, base = values, rr = lr) {
     setSuggestion(s);
-    if (needWords && s.words > 0) setWords(String(Math.round(s.words)));
-    if (needErrors) setErrors(fmtNote(Math.round(s.errors * 2) / 2));
+    if (usesWords(rr) && s.words > 0) setWords(String(Math.round(s.words)));
+    if (usesErrors(rr)) setErrors(fmtNote(Math.round(s.errors * 2) / 2));
     const next = { ...base };
-    for (const c of rubric.criteria) {
+    for (const c of rr.criteria) {
       const g = s.criteria.find((x) => x.id === c.id);
       if (!g) continue;
       const v = { ...emptyInput(c) };
@@ -374,10 +439,11 @@ function Grader({ rubric }: { rubric: Rubric }) {
     clearForm();
     setKlasse(s.klasse);
     setNr(s.nr);
-    setLevel(s.levelId ?? rubric.levels.find((l) => l.label === s.level)?.id ?? rubric.levels[0]?.id ?? "");
+    const lv = s.levelId ?? rubric.levels.find((l) => l.label === s.level)?.id ?? rubric.levels[0]?.id ?? "";
+    setLevel(lv);
     setWords(s.words ? String(s.words) : "");
     setErrors(s.errors !== undefined ? fmtNote(s.errors) : "");
-    setValues(restoreValues(rubric, s.values));
+    setValues(restoreValues(forLevel(rubric, lv), s.values));
     if (s.suggestion) setSuggestion(s.suggestion);
     setOwn(s.own ?? "");
     setEditing({ klasse: s.klasse, nr: s.nr });
@@ -392,7 +458,8 @@ function Grader({ rubric }: { rubric: Rubric }) {
     setKlasse(item.klasse);
     setNr(item.nr);
     setLevel(item.level);
-    if (item.suggestion) applySuggestion(item.suggestion, fresh());
+    const rr = forLevel(rubric, item.level);
+    if (item.suggestion) applySuggestion(item.suggestion, fresh(rr), rr);
     const old = saved.find((s) => s.klasse === item.klasse && s.nr === item.nr);
     setEditing(old ? { klasse: old.klasse, nr: old.nr } : null);
     setBatchId(item.id);
@@ -475,7 +542,7 @@ function Grader({ rubric }: { rubric: Rubric }) {
 
   function copyList() {
     const sorted = [...saved].sort(bySeat);
-    const head = ["Klasse", "Nr.", "Niveau", ...rubric.criteria.map((c) => c.name), "Gesamtwert", "Note"].join("\t");
+    const head = ["Klasse", "Nr.", "Niveau", ...lr.criteria.map((c) => c.name), "Gesamtwert", "Note"].join("\t");
     const rows = sorted.map((s) => [s.klasse, s.nr, s.level, ...s.parts.map(fmtNote), fmtNote(s.gesamt), s.note].join("\t"));
     copyText([head, ...rows].join("\n"), "Liste kopiert. In Excel oder Numbers einfügen mit ⌘V.");
   }
@@ -561,7 +628,7 @@ function Grader({ rubric }: { rubric: Rubric }) {
           </p>
         )}
 
-        {!batchId && <Scan key={scanKey} rubric={rubric} levelLabel={levelLabel} lega={lega} onResult={applySuggestion} />}
+        {!batchId && <Scan key={scanKey} rubric={lr} levelLabel={levelLabel} lega={lega} onResult={applySuggestion} />}
         {batchId && suggestion && (suggestion.hinweise || !suggestion.readable) && (
           <p className="claude-comment">
             {[suggestion.readable ? "" : "Claude konnte Teile der Arbeit nicht lesen.", suggestion.hinweise].filter(Boolean).join(" ")}
@@ -569,7 +636,7 @@ function Grader({ rubric }: { rubric: Rubric }) {
         )}
 
         <div className="rubric-cols">
-          {rubric.criteria.map((c) => {
+          {lr.criteria.map((c) => {
             const v = values[c.id] ?? emptyInput(c);
             const part = r.parts.find((p) => p.id === c.id)!;
             const comment = suggestion?.criteria.find((x) => x.id === c.id)?.comment;

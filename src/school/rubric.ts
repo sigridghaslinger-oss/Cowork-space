@@ -47,7 +47,34 @@ export type Rubric = {
   criteria: Criterion[];
   decisive: string; // Teilbereich, der bei Grenzfällen auf x,50 entscheidet ("" = keiner)
   knockout: string; // Teilbereich, bei dem Teilnote 5 automatisch Nicht genügend bedeutet ("" = keiner)
+  // Eigener Notenschlüssel je Niveau (Niveau-id → Kriterien). Fehlt er, gelten criteria für alle Niveaus.
+  byLevel?: Record<string, LevelKey>;
 };
+
+export type LevelKey = { criteria: Criterion[]; decisive: string; knockout: string };
+
+// Die Schularbeit so, wie sie auf einem Niveau bewertet wird.
+export function forLevel(r: Rubric, levelId: string): Rubric {
+  const k = r.byLevel?.[levelId];
+  return k ? { ...r, ...k } : r;
+}
+
+// Zwei (oder mehr) eingelesene Notenschlüssel zu einer Schularbeit mit eigenem Schlüssel je Niveau zusammenführen.
+export function mergeLevelKeys(parts: { label: string; rubric: Rubric }[]): Rubric {
+  const source = (p: (typeof parts)[number]) =>
+    p.rubric.levels.find((l) => l.label.toLowerCase() === p.label.toLowerCase()) ?? p.rubric.levels[0];
+  const levels: Level[] = parts.map((p) => ({ id: newId(), label: p.label, minWords: source(p)?.minWords ?? null }));
+  const byLevel: Record<string, LevelKey> = {};
+  parts.forEach((p, i) => {
+    const src = source(p)?.id ?? "";
+    const criteria = p.rubric.criteria.map((c) =>
+      c.kind === "fq" ? { ...c, limits: { [levels[i].id]: c.limits[src] ?? Object.values(c.limits)[0] ?? [] } } : c,
+    );
+    byLevel[levels[i].id] = { criteria, decisive: p.rubric.decisive, knockout: p.rubric.knockout };
+  });
+  const first = byLevel[levels[0].id];
+  return { ...parts[0].rubric, levels, ...first, byLevel };
+}
 
 export const HALF_STEPS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5];
 export const GRADE_NAMES = ["Sehr gut", "Gut", "Befriedigend", "Genügend", "Nicht genügend"];
