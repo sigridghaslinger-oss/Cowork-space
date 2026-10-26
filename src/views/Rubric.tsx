@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getSetting, setSetting, getApiKey } from "../settings";
 import { gradeScan, rubricFromKey, type GradeSuggestion, type ScanFile } from "../claude";
 import RubricEditor from "./RubricEditor";
+import { fileToBase64, imageToJpeg } from "../images";
 import {
   DIAGRAMM_4,
   GRADE_NAMES,
@@ -563,35 +564,4 @@ function Scan({ rubric, levelLabel, onResult }: { rubric: Rubric; levelLabel: st
       {error && <p className="error">{error}</p>}
     </div>
   );
-}
-
-function fileToBase64(f: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(f);
-  });
-}
-
-// Fotos verkleinern und als JPEG schicken: kleiner, schneller und unter der Größengrenze der API.
-function imageToJpeg(f: File, maxSide = 2000): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(f);
-    const img = new Image();
-    img.onload = () => {
-      const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.round(img.naturalWidth * scale);
-      canvas.height = Math.round(img.naturalHeight * scale);
-      canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
-      URL.revokeObjectURL(url);
-      resolve(canvas.toDataURL("image/jpeg", 0.85).split(",")[1]);
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("Bild nicht lesbar"));
-    };
-    img.src = url;
-  });
 }
