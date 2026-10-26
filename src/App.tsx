@@ -4,6 +4,7 @@ import Today from "./views/Today";
 import Settings from "./views/Settings";
 import Mails from "./views/Mails";
 import School from "./views/School";
+import Board, { hasBoard } from "./views/Board";
 import { AREAS, areaById, type AreaId } from "./areas";
 
 type View = "today" | "mails" | "chat" | "settings";
@@ -69,7 +70,15 @@ export default function App() {
               setChat={(id, update) => setChats((all) => ({ ...all, [id]: update(all[id] ?? emptyChat) }))}
             />
           )}
-          {view === "chat" && areaId !== "schule" && (
+          {view === "chat" && hasBoard(areaId) && (
+            <Board
+              key={areaId}
+              area={area}
+              chat={chats[areaId] ?? emptyChat}
+              setChat={(id, update) => setChats((all) => ({ ...all, [id]: update(all[id] ?? emptyChat) }))}
+            />
+          )}
+          {view === "chat" && areaId !== "schule" && !hasBoard(areaId) && (
             <Chat
               key={areaId}
               area={area}

@@ -350,3 +350,23 @@ table.grades.limits input { width: 90px; padding: 6px 8px; }
 @media (prefers-color-scheme: dark) {
   .plan-section { background: color-mix(in srgb, var(--accent-soft) 15%, var(--panel)); }
 }
+
+/* Kachel-Bereiche: Ausbildung, Lernanker */
+.board .grow { flex: 1; min-width: 0; }
+.board .events > li, .board .reminder { align-items: flex-start; }
+.board .tile-panel h4 { margin: 20px 0 10px; }
+.board .tile-panel > .primary { margin-top: 4px; }
+.board .reminder.done { opacity: 0.55; text-decoration: line-through; }
+.board .events.past { opacity: 0.6; margin-top: 10px; }
+.board .entry + .entry { border-top: 1px solid var(--border); padding-top: 12px; }
+.board .entry-text { white-space: pre-wrap; color: var(--text); line-height: 1.5; margin-top: 8px; background: var(--panel-soft); border-radius: 10px; padding: 10px 12px; }
+.board .progress-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.board .coaching-sums { margin: 10px 0 14px; }
+.board .coaching-sums .pill { background: var(--accent-soft); color: var(--accent); }
+.board .task-add { align-items: center; margin-bottom: 14px; }
+.board .task-add input:first-child { flex: 1; }
+.board button.ghost.link { padding: 0; }
+.board-chat { height: 480px; display: flex; flex-direction: column; }
+.board-chat .chat { height: 100%; }
+.board .tile-panel .actions { margin-bottom: 4px; }
+.board .coaching-sums .pill.focus { background: var(--panel-soft); color: var(--text); }
