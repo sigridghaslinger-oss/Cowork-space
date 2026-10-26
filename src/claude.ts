@@ -278,7 +278,7 @@ export async function rubricFromKey(
 - title, klasse, aufgabe: Name der Arbeit, Klasse/Schulstufe, Aufgabenstellung bzw. Textsorte.
 - levels: die Niveaus (z. B. Standard und AHS) mit Mindestwortzahl, sonst eine Stufe "Standard" mit minWords null.
 - criteria: jeder Teilbereich, der eine eigene Teilnote ergibt, mit seiner Gewichtung (weight, z. B. 2 wenn er doppelt zählt).
-  kind "checklist": Elemente zum Abhaken in groups (Überschrift + Elemente), step = Notenschritt pro fehlendem Element (meist 0,5), deductions = Abzüge mit Wert, wordRule = true wenn es Abzüge für zu wenige Wörter gibt, failLabel = wann der Teilbereich automatisch 5 ist (sonst leer).
+  kind "checklist": Elemente zum Abhaken in groups (Überschrift + Elemente; ein Element, das nur auf einem Niveau verlangt ist, beginnt mit dem Niveau in eckigen Klammern, z. B. "[AHS] Gegenargument entkräftet"), step = Notenschritt pro fehlendem Element (meist 0,5), deductions = Abzüge mit Wert, wordRule = true wenn es Abzüge für zu wenige Wörter gibt, failLabel = wann der Teilbereich automatisch 5 ist (sonst leer).
   kind "scale": Teilbereich, den man einschätzt; descriptions = genau 5 Beschreibungen für die Noten 1 bis 5.
   kind "fq": Fehlerquotient; limits = je Niveau (level = Name des Niveaus) die 8 Obergrenzen für die Teilnoten 1; 1,5; 2; 2,5; 3; 3,5; 4; 4,5. rules = Zählregeln für Fehler.
   Felder, die zur Art nicht passen, leer lassen (leere Listen, 0, false, "").

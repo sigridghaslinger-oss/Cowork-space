@@ -394,3 +394,5 @@ table.grades.spiegel .bar { display: inline-block; height: 10px; border-radius: 
 .note-box.muted .rubric-note { opacity: 0.5; text-decoration: line-through; }
 .note-box.mine { border: 2px solid var(--accent); background: var(--accent-soft); padding: 11px 13px; }
 .note-box select { width: 100%; margin: 6px 0 2px; font-size: 16px; }
+.check.not-due { opacity: 0.45; }
+.level-pill { margin-left: 6px; background: var(--accent-soft); color: var(--accent); }

@@ -24,7 +24,10 @@ import {
   evaluate,
   fmtNote,
   fromDraft,
-  itemCount,
+  itemApplies,
+  itemLevel,
+  itemText,
+  levelCount,
   loadRubrics,
   newId,
   saveRubrics,
@@ -551,7 +554,10 @@ function Grader({ rubric }: { rubric: Rubric }) {
               <div key={c.id}>
                 <h4>
                   {c.name} {c.weight !== 1 && `(× ${fmtNote(c.weight)})`}
-                  {c.kind === "checklist" && ` · ${v.checked.filter(Boolean).length} von ${itemCount(c)}`}
+                  {c.kind === "checklist" && (() => {
+                    const n = levelCount(c, levelLabel, v.checked);
+                    return ` · ${n.done} von ${n.total}`;
+                  })()}
                 </h4>
                 {comment && <p className="claude-comment">Claude: {comment}</p>}
                 {c.kind === "checklist" && (
@@ -561,14 +567,18 @@ function Grader({ rubric }: { rubric: Rubric }) {
                         {g.title && <div className="rubric-group-title">{g.title}</div>}
                         {g.items.map((item) => {
                           const i = index++;
+                          const only = itemLevel(item);
+                          const applies = itemApplies(item, levelLabel);
                           return (
-                            <label key={i} className="check">
+                            <label key={i} className={applies ? "check" : "check not-due"}>
                               <input
                                 type="checkbox"
-                                checked={v.checked[i] ?? false}
+                                disabled={!applies}
+                                checked={applies && (v.checked[i] ?? false)}
                                 onChange={(e) => setValue(c.id, { checked: v.checked.map((x, j) => (j === i ? e.target.checked : x)) })}
                               />
-                              {i + 1}. {item}
+                              {i + 1}. {itemText(item)}
+                              {only && <span className="pill level-pill">nur {only}</span>}
                             </label>
                           );
                         })}
