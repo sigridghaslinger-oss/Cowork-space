@@ -7,6 +7,7 @@ import { getApiKey, getSetting, setSetting } from "../settings";
 import { AREAS, type AreaId } from "../areas";
 import Cleanup from "./Cleanup";
 import RemindButton from "./RemindButton";
+import MailBody from "./MailBody";
 
 type Filter = AreaId | "alle";
 
@@ -224,7 +225,8 @@ function MailCard({ mail, sort, source, open, onToggle }: CardProps) {
             <span className="meta-inline">{dateLabel(mail.date)}</span>
           </div>
           <div className="mail-subject">{mail.subject}</div>
-          <p className="mail-summary">{sort?.summary ?? mail.snippet}</p>
+          {sort?.summary && <p className="mail-summary">{sort.summary}</p>}
+          <MailBody mail={mail} source={source} />
         </div>
         <div className="actions">
           {source === "mac" && <RemindButton title={`Antworten: ${mail.subject}`} notes={`Mail von ${mail.from}`} mailId={mail.id} />}
