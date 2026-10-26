@@ -250,3 +250,23 @@ section > .card + .card { margin-top: 16px; }
 .rubric-result .actions { margin-top: 12px; }
 .rubric-cols .hint, .rubric-result .hint { margin: 6px 0; }
 .rubric-top { margin-top: 14px; }
+.rubric-picker { display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; }
+.rubric-picker .field { flex: 1; min-width: 260px; }
+.editor-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+.editor-row input { flex: 1; }
+.field.wide textarea.tall { min-height: 180px; }
+table.grades.limits td { padding: 4px 12px 4px 0; }
+table.grades.limits input { width: 90px; padding: 6px 8px; }
+.sticky-actions { position: sticky; bottom: 0; padding: 12px 0; background: var(--bg); margin-top: 16px; }
+.claude-comment { font-size: 13px; color: var(--accent); background: var(--accent-soft); border-radius: 10px; padding: 8px 12px; margin: 6px 0 10px; }
+@media (prefers-color-scheme: dark) {
+  .claude-comment { background: color-mix(in srgb, var(--accent-soft) 15%, var(--panel)); }
+}
+.feedback { margin: 12px 0; padding: 12px 14px; background: var(--panel); border-radius: 12px; }
+.feedback p { margin: 4px 0 10px; color: var(--text); font-size: 14px; line-height: 1.5; }
+.scan { margin: 4px 0 18px; padding: 14px 16px; border: 1px dashed var(--border); border-radius: 14px; }
+.scan .hint { margin: 4px 0 10px; }
+.file-button { position: relative; overflow: hidden; padding: 7px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel); font-size: 13px; cursor: pointer; }
+.file-button input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.file-pill { display: inline-flex; align-items: center; gap: 4px; background: var(--panel-soft); font-weight: 500; }
+.content .file-pill button.ghost { padding: 0 2px; color: var(--muted); }

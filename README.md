@@ -14,9 +14,11 @@ Tagesplanung mit Terminen und Stundenplan, Erinnerungen an Zahlungen und Notizen
   Verschickt wird nur, was du selbst abschickst.
 - **Schule:** eigene Arbeitsfläche mit **Überblick** (heutige Stunden, Schul-Mails, Korrekturfristen),
   **Schularbeiten** (Fortschritt, Korrekturplan von Claude passend zum Kalender, Notenschlüssel-Rechner),
-  **Bewerten** (Notenschlüssel der 1. Deutsch-Schularbeit 4. Klasse, Diagrammbeschreibung: Elemente ankreuzen, Wörter und Fehler eintragen, Note mit Tendenz; Arbeiten nur mit Nummer gespeichert, Liste für Excel kopierbar),
+  **Bewerten** (eigene Schularbeiten mit eigenen Kriterien anlegen, selbst oder von Claude aus dem Notenschlüssel-PDF erstellt;
+  Arbeiten einscannen und Claude einen Bewertungsvorschlag samt Rückmeldung machen lassen, den du prüfst;
+  Teilnoten, gewichteter Gesamtwert, Grenzfall-Regel und Note mit Tendenz; gespeichert nur mit Nummer, Liste für Excel kopierbar),
   **Klassenbuch & Planung** (aus Stichworten einen Klassenbucheintrag und eine Stundenplanung formulieren) und Chat.
-  Schülernamen werden nicht an Claude geschickt.
+  Schülernamen werden nicht gespeichert. Eingescannte Seiten gehen an Claude, darum den Namen auf dem Blatt abdecken.
   Tipp: Den EduPage-Stundenplan als Kalender-Abo (iCal) in die Kalender-App einfügen, dann erscheint er automatisch.
 - **Chat:** Unterhaltung mit Claude, Antworten erscheinen live.
 - **Einstellungen:** API-Schlüssel von Anthropic hinterlegen (wird nur lokal auf dem Mac gespeichert).
