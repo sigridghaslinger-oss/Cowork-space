@@ -4,8 +4,10 @@ import {
   KIND_LABELS,
   blankCriterion,
   fmtNote,
+  forLevel,
   newId,
   type Criterion,
+  type LevelKey,
   type Rubric,
 } from "../school/rubric";
 
@@ -51,15 +53,34 @@ function textToDeductions(text: string) {
     });
 }
 
+type Texts = Record<string, { groups: string; deductions: string }>;
+
+const textsFor = (criteria: Criterion[]): Texts =>
+  Object.fromEntries(
+    criteria
+      .filter((c) => c.kind === "checklist")
+      .map((c) => [c.id, { groups: groupsToText(c.groups), deductions: deductionsToText(c.deductions) }]),
+  );
+
+// Kopie eines Notenschlüssels mit neuen ids, damit die Textfelder der Niveaus getrennt bleiben.
+function cloneKey(k: LevelKey): LevelKey {
+  const ids = new Map(k.criteria.map((c) => [c.id, newId()]));
+  return {
+    criteria: k.criteria.map((c) => ({ ...structuredClone(c), id: ids.get(c.id)! })),
+    decisive: ids.get(k.decisive) ?? "",
+    knockout: ids.get(k.knockout) ?? "",
+  };
+}
+
 export default function RubricEditor({ initial, isNew, onSave, onCancel, onDelete }: Props) {
-  const [r, setR] = useState<Rubric>(initial);
+  const firstLevel = initial.levels[0]?.id ?? "";
+  // Eigener Notenschlüssel je Niveau: bearbeitet wird immer der des gewählten Niveaus.
+  const [keys, setKeys] = useState<Record<string, LevelKey> | null>(() => (initial.byLevel ? structuredClone(initial.byLevel) : null));
+  const [active, setActive] = useState(firstLevel);
+  const [r, setR] = useState<Rubric>(() => forLevel(initial, firstLevel));
   // Textfelder getrennt halten, damit beim Tippen nichts umsortiert wird.
-  const [texts, setTexts] = useState<Record<string, { groups: string; deductions: string }>>(() =>
-    Object.fromEntries(
-      initial.criteria
-        .filter((c) => c.kind === "checklist")
-        .map((c) => [c.id, { groups: groupsToText(c.groups), deductions: deductionsToText(c.deductions) }]),
-    ),
+  const [texts, setTexts] = useState<Texts>(() =>
+    textsFor(initial.byLevel ? Object.values(initial.byLevel).flatMap((k) => k.criteria) : initial.criteria),
   );
 
   const set = (patch: Partial<Rubric>) => setR({ ...r, ...patch });
@@ -89,16 +110,53 @@ export default function RubricEditor({ initial, isNew, onSave, onCancel, onDelet
     set({ criteria: next });
   }
 
-  function save() {
+  // Die Kriterien des gerade gezeigten Niveaus, mit den Textfeldern übernommen.
+  function current(): LevelKey {
     const criteria = r.criteria.map((c) =>
       c.kind === "checklist" && texts[c.id]
         ? { ...c, groups: textToGroups(texts[c.id].groups), deductions: textToDeductions(texts[c.id].deductions) }
         : c,
     );
-    onSave({ ...r, title: r.title.trim() || "Neue Schularbeit", criteria });
+    return { criteria, decisive: r.decisive, knockout: r.knockout };
+  }
+
+  function switchLevel(id: string) {
+    if (!keys || id === active) return;
+    const now = current();
+    const target = keys[id] ?? cloneKey(now);
+    setKeys({ ...keys, [active]: now, [id]: target });
+    setTexts({ ...texts, ...textsFor(target.criteria.filter((c) => !texts[c.id])) });
+    setR({ ...r, ...target });
+    setActive(id);
+  }
+
+  function toggleKeys(on: boolean) {
+    if (on) {
+      const now = current();
+      const next = Object.fromEntries(r.levels.map((l) => [l.id, l.id === active ? now : cloneKey(now)]));
+      setKeys(next);
+      setTexts({ ...texts, ...textsFor(Object.values(next).flatMap((k) => k.criteria)) });
+    } else {
+      const name = r.levels.find((l) => l.id === active)?.label || "dieses Niveau";
+      if (!confirm(`Nur noch einen Notenschlüssel verwenden? Es bleiben die Kriterien von ${name}.`)) return;
+      setKeys(null);
+    }
+  }
+
+  function save() {
+    const now = current();
+    const title = r.title.trim() || "Neue Schularbeit";
+    if (!keys) {
+      onSave({ ...r, ...now, title, byLevel: undefined });
+      return;
+    }
+    const all = { ...keys, [active]: now };
+    const byLevel = Object.fromEntries(r.levels.map((l) => [l.id, all[l.id] ?? cloneKey(now)]));
+    onSave({ ...r, ...byLevel[r.levels[0].id], title, byLevel });
   }
 
   const totalWeight = r.criteria.reduce((s, c) => s + c.weight, 0);
+  const limitLevels = keys ? r.levels.filter((l) => l.id === active) : r.levels;
 
   return (
     <>
@@ -147,6 +205,24 @@ export default function RubricEditor({ initial, isNew, onSave, onCancel, onDelet
           </div>
         ))}
         <button onClick={() => set({ levels: [...r.levels, { id: newId(), label: "", minWords: null }] })}>+ Niveau</button>
+        {r.levels.length > 1 && (
+          <label className="check">
+            <input type="checkbox" checked={!!keys} onChange={(e) => toggleKeys(e.target.checked)} />
+            Eigener Notenschlüssel je Niveau (z. B. strenger bei AHS)
+          </label>
+        )}
+        {keys && (
+          <>
+            <div className="level-tabs">
+              {r.levels.map((l) => (
+                <button key={l.id} className={l.id === active ? "active" : ""} onClick={() => switchLevel(l.id)}>
+                  Notenschlüssel {l.label || "Niveau"}
+                </button>
+              ))}
+            </div>
+            <p className="hint">Die Teilbereiche unten gelten nur für {r.levels.find((l) => l.id === active)?.label || "dieses Niveau"}.</p>
+          </>
+        )}
       </article>
 
       {r.criteria.map((c, idx) => (
@@ -240,7 +316,7 @@ export default function RubricEditor({ initial, isNew, onSave, onCancel, onDelet
                 <thead>
                   <tr>
                     <td>Teilnote</td>
-                    {r.levels.map((l) => (
+                    {limitLevels.map((l) => (
                       <td key={l.id}>{l.label || "Niveau"}</td>
                     ))}
                   </tr>
@@ -249,7 +325,7 @@ export default function RubricEditor({ initial, isNew, onSave, onCancel, onDelet
                   {HALF_STEPS.slice(0, 8).map((step, i) => (
                     <tr key={step}>
                       <td>{fmtNote(step)}</td>
-                      {r.levels.map((l) => (
+                      {limitLevels.map((l) => (
                         <td key={l.id}>
                           <input
                             defaultValue={c.limits[l.id]?.[i] !== undefined ? fmtNote(c.limits[l.id][i]) : ""}

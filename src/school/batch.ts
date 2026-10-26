@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { getApiKey, getSetting, setSetting } from "../settings";
 import { gradeScan, type GradeSuggestion, type ScanFile } from "../claude";
-import { describeRubric, newId, type Rubric } from "./rubric";
+import { describeRubric, forLevel, newId, type Rubric } from "./rubric";
 import { LEGA_RULE } from "./lega";
 
 export type BatchItem = {
@@ -96,7 +96,7 @@ async function run(rubric: Rubric) {
         patch(rubric.id, next.id, { status: "liest" });
         const label = rubric.levels.find((l) => l.id === next.level)?.label ?? "";
         try {
-          const suggestion = await gradeScan(apiKey, describeRubric(rubric), label, files, next.lega ? LEGA_RULE : "");
+          const suggestion = await gradeScan(apiKey, describeRubric(forLevel(rubric, next.level)), label, files, next.lega ? LEGA_RULE : "");
           scans.delete(next.id);
           patch(rubric.id, next.id, { status: "fertig", suggestion, error: undefined });
         } catch (e) {

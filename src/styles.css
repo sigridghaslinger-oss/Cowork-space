@@ -397,3 +397,7 @@ table.grades.spiegel .bar { display: inline-block; height: 10px; border-radius: 
 .check.not-due { opacity: 0.45; }
 .level-pill { margin-left: 6px; background: var(--accent-soft); color: var(--accent); }
 .lega-check { align-self: end; padding-bottom: 10px; white-space: nowrap; }
+.key-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.key-pair .scan { margin-bottom: 8px; }
+.level-tabs { display: flex; gap: 8px; margin: 10px 0 4px; flex-wrap: wrap; }
+.content .level-tabs button.active { border: 2px solid var(--accent); background: var(--accent-soft); font-weight: 600; }
