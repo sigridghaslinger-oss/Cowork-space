@@ -369,3 +369,4 @@ table.grades.limits input { width: 90px; padding: 6px 8px; }
 .board-chat { height: 480px; display: flex; flex-direction: column; }
 .board-chat .chat { height: 100%; }
 .board .tile-panel .actions { margin-bottom: 4px; }
+.board .coaching-sums .pill.focus { background: var(--panel-soft); color: var(--text); }

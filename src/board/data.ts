@@ -15,7 +15,9 @@ export type CoachingSession = {
   id: string;
   datum: string;
   minuten: number;
-  art: "Coaching (ich coache)" | "Supervision" | "Peer-Coaching" | "Selbsterfahrung";
+  art: string; // z. B. Lerncoaching, Elterngespräch, Supervision
+  // Legasthenie, Dyskalkulie oder ADHS (in älteren Einträgen leer).
+  schwerpunkt?: string;
   // Nur ein Kürzel, kein voller Name, damit nichts Persönliches an Claude geht.
   kuerzel: string;
   thema: string;

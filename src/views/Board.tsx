@@ -13,8 +13,7 @@ import {
   saveBoard,
   type BoardData,
   type BoardDate,
-  type CoachingSession,
-  type Task,
+    type Task,
 } from "../board/data";
 
 type TileId = "overview" | "homepage" | "dates" | "coaching" | "tasks" | "journal" | "docs" | "chat";
@@ -39,12 +38,12 @@ const CONFIG: Partial<Record<AreaId, BoardConfig>> = {
     overview: {
       title: "Meine Ausbildung",
       nameLabel: "Name der Ausbildung",
-      namePlaceholder: "z. B. Systemisches Coaching",
-      anbieterLabel: "Anbieter / Institut",
+      namePlaceholder: "z. B. Lerncoach Legasthenie, Dyskalkulie, ADHS",
+      anbieterLabel: "Ausbildungsinstitut",
       zielLabel: "Mein Ziel / warum ich das mache",
       hours: true,
     },
-    dateKinds: ["Modul", "Supervision", "Prüfung", "Abgabe", "Sonstiges"],
+    dateKinds: ["Modul", "Praxistag", "Supervision", "Prüfung", "Abgabe", "Sonstiges"],
     tasks: { title: "Checkliste", placeholder: "z. B. Hausarbeit Modul 2 abgeben", empty: "Sammle hier, was bis zum Abschluss erledigt sein muss." },
     journal: { title: "Lernjournal", icon: "📝", label: "Was habe ich gelernt, was beschäftigt mich?", placeholder: "z. B. Erkenntnisse aus Modul 2", empty: "Gedanken festhalten" },
     chatPreview: "Reflexion, Zusammenfassung, Ideen",
@@ -172,7 +171,7 @@ export default function Board({ area, chat, setChat }: Props) {
     },
     coaching: {
       icon: "💬",
-      title: "Coaching",
+      title: "Lerncoaching",
       count: data.coaching.length,
       preview: data.stundenZiel ? `${hoursLabel(hours)} von ${data.stundenZiel} h` : `${hoursLabel(hours)} gesamt`,
     },
@@ -212,7 +211,7 @@ export default function Board({ area, chat, setChat }: Props) {
           {(showHours || data.aufgaben.length > 0) && (
             <li className="progress-pair">
               {showHours && (
-                <ProgressLine label="Coaching-Stunden" value={hours} max={data.stundenZiel} text={`${hoursLabel(hours)} von ${data.stundenZiel} h`} />
+                <ProgressLine label="Praxisstunden" value={hours} max={data.stundenZiel} text={`${hoursLabel(hours)} von ${data.stundenZiel} h`} />
               )}
               {data.aufgaben.length > 0 && (
                 <ProgressLine label={config.tasks.title} value={doneTasks} max={data.aufgaben.length} text={`${doneTasks} von ${data.aufgaben.length} erledigt`} />
@@ -292,7 +291,7 @@ function Overview({ data, update, config }: PanelProps & { config: BoardConfig }
         <label className="field">Beginn<input type="date" value={data.start} onChange={set("start")} /></label>
         <label className="field">{o.hours ? "Abschluss" : "Ziel bis"}<input type="date" value={data.ende} onChange={set("ende")} /></label>
         {o.hours && (
-          <label className="field">Nötige Coaching-Stunden<input type="number" min={0} value={data.stundenZiel || ""} onChange={set("stundenZiel")} placeholder="z. B. 30" /></label>
+          <label className="field">Nötige Praxisstunden<input type="number" min={0} value={data.stundenZiel || ""} onChange={set("stundenZiel")} placeholder="z. B. 30" /></label>
         )}
         <label className="field">Stichwort im Kalender<input value={data.stichwort} onChange={set("stichwort")} placeholder={`z. B. ${config.stichwort}`} /></label>
       </div>
@@ -378,8 +377,9 @@ function Dates({ data, calendar, update, kinds }: PanelProps & { calendar: Calen
   );
 }
 
-const ARTEN: CoachingSession["art"][] = ["Coaching (ich coache)", "Supervision", "Peer-Coaching", "Selbsterfahrung"];
-const emptySession = () => ({ datum: today(), minuten: "60", art: ARTEN[0], kuerzel: "", thema: "", reflexion: "" });
+const ARTEN = ["Lerncoaching", "Testung / Diagnostik", "Elterngespräch", "Hospitation", "Supervision", "Peer-Übung"];
+const SCHWERPUNKTE = ["Legasthenie", "Dyskalkulie", "ADHS"];
+const emptySession = () => ({ datum: today(), minuten: "50", art: ARTEN[0], schwerpunkt: SCHWERPUNKTE[0], kuerzel: "", thema: "", reflexion: "" });
 
 function Coaching({ data, update }: PanelProps) {
   const [form, setForm] = useState(emptySession());
@@ -401,7 +401,7 @@ function Coaching({ data, update }: PanelProps) {
   return (
     <article className="card tile-panel">
       <div className="row">
-        <h3>Coaching-Sitzungen</h3>
+        <h3>Lerncoaching & Praxis</h3>
         <span className="meta-inline">{hoursLabel(total)}{data.stundenZiel ? ` von ${data.stundenZiel} h` : ""}</span>
       </div>
       {data.stundenZiel > 0 && <ProgressLine label="Fortschritt" value={total} max={data.stundenZiel} text={`${Math.min(100, Math.round((total / data.stundenZiel) * 100))} %`} />}
@@ -410,21 +410,31 @@ function Coaching({ data, update }: PanelProps) {
           const h = data.coaching.filter((s) => s.art === a).reduce((n, s) => n + s.minuten, 0) / 60;
           return h ? <span key={a} className="pill">{a}: {hoursLabel(h)}</span> : null;
         })}
+        {SCHWERPUNKTE.map((f) => {
+          const n = data.coaching.filter((s) => s.schwerpunkt === f).length;
+          return n ? <span key={f} className="pill focus">{f}: {n}×</span> : null;
+        })}
       </div>
 
       <div className="form-grid">
         <label className="field">Datum<input type="date" value={form.datum} onChange={(e) => setForm({ ...form, datum: e.target.value })} /></label>
         <label className="field">Dauer (Minuten)<input type="number" min={5} step={5} value={form.minuten} onChange={(e) => setForm({ ...form, minuten: e.target.value })} /></label>
         <label className="field">Art
-          <select value={form.art} onChange={(e) => setForm({ ...form, art: e.target.value as CoachingSession["art"] })}>
+          <select value={form.art} onChange={(e) => setForm({ ...form, art: e.target.value })}>
             {ARTEN.map((a) => <option key={a}>{a}</option>)}
           </select>
         </label>
-        <label className="field">Kürzel<input value={form.kuerzel} onChange={(e) => setForm({ ...form, kuerzel: e.target.value })} placeholder="z. B. K1" /></label>
+        <label className="field">Schwerpunkt
+          <select value={form.schwerpunkt} onChange={(e) => setForm({ ...form, schwerpunkt: e.target.value })}>
+            {SCHWERPUNKTE.map((f) => <option key={f}>{f}</option>)}
+            <option value="">kein bestimmter</option>
+          </select>
+        </label>
+        <label className="field">Kürzel<input value={form.kuerzel} onChange={(e) => setForm({ ...form, kuerzel: e.target.value })} placeholder="z. B. Kind A" /></label>
       </div>
-      <label className="field wide">Thema<input value={form.thema} onChange={(e) => setForm({ ...form, thema: e.target.value })} /></label>
+      <label className="field wide">Thema / Übung<input value={form.thema} placeholder="z. B. Lesetraining mit Silbenbögen" onChange={(e) => setForm({ ...form, thema: e.target.value })} /></label>
       <label className="field wide">Reflexion: Was lief gut, was nehme ich mit?<textarea value={form.reflexion} onChange={(e) => setForm({ ...form, reflexion: e.target.value })} /></label>
-      <p className="hint">Bitte nur ein Kürzel statt des Namens verwenden.</p>
+      <p className="hint">Bitte nur ein Kürzel statt des Namens des Kindes verwenden.</p>
       <button className="primary" onClick={add}>Sitzung speichern</button>
 
       <h4>Bisher</h4>
@@ -434,7 +444,7 @@ function Coaching({ data, update }: PanelProps) {
           <li key={s.id} className="entry">
             <div className="mail-head" onClick={() => setOpen(open === s.id ? null : s.id)}>
               <div>
-                <strong>{formatDay(s.datum)}</strong> · {s.art}{s.kuerzel && ` · ${s.kuerzel}`} · {s.minuten} min
+                <strong>{formatDay(s.datum)}</strong> · {s.art}{s.schwerpunkt && ` · ${s.schwerpunkt}`}{s.kuerzel && ` · ${s.kuerzel}`} · {s.minuten} min
                 <span className="meta">{s.thema || "ohne Thema"}</span>
               </div>
               <button className="ghost danger" title="Löschen" onClick={(e) => { e.stopPropagation(); remove(s.id); }}>✕</button>
