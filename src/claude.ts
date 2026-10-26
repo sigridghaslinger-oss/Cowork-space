@@ -152,3 +152,136 @@ Schreib mir:
 ${withPlanning ? "2. **Stundenplanung**: Lernziel, Ablauf mit Zeitangaben (Einstieg, Erarbeitung, Sicherung), Methoden, Material, Hausübung falls passend.\n" : ""}Keine Einleitung, keine Schülernamen.`;
   await streamReply(apiKey, [{ role: "user", content: prompt }], onText);
 }
+
+// Eine eingescannte Seite: entweder ein Bild (als JPEG verkleinert) oder ein PDF.
+export type ScanFile = { kind: "image" | "pdf"; data: string };
+
+function scanBlocks(files: ScanFile[]): Anthropic.Beta.BetaContentBlockParam[] {
+  return files.map((f) =>
+    f.kind === "pdf"
+      ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: f.data } }
+      : { type: "image", source: { type: "base64", media_type: "image/jpeg", data: f.data } },
+  );
+}
+
+const RubricDraftSchema = z.object({
+  title: z.string(),
+  klasse: z.string(),
+  aufgabe: z.string(),
+  levels: z.array(z.object({ label: z.string(), minWords: z.number().nullable() })),
+  criteria: z.array(
+    z.object({
+      kind: z.enum(["checklist", "scale", "fq"]),
+      name: z.string(),
+      weight: z.number(),
+      groups: z.array(z.object({ title: z.string(), items: z.array(z.string()) })),
+      step: z.number(),
+      deductions: z.array(z.object({ label: z.string(), value: z.number() })),
+      wordRule: z.boolean(),
+      failLabel: z.string(),
+      descriptions: z.array(z.string()),
+      limits: z.array(z.object({ level: z.string(), values: z.array(z.number()) })),
+      rules: z.string(),
+    }),
+  ),
+  decisive: z.string(),
+  knockout: z.string(),
+});
+
+export type RubricDraft = z.infer<typeof RubricDraftSchema>;
+
+// Liest einen Notenschlüssel (PDF oder Text) und macht daraus ein Bewertungsschema für die App.
+export async function rubricFromKey(apiKey: string, input: { pdf?: string; text?: string }): Promise<RubricDraft> {
+  const content: Anthropic.Beta.BetaContentBlockParam[] = [];
+  if (input.pdf) content.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: input.pdf } });
+  content.push({
+    type: "text",
+    text: `${input.text ? `Hier ist mein Notenschlüssel:\n\n${input.text}\n\n` : "Das PDF ist mein Notenschlüssel für eine Schularbeit. "}Übertrage ihn in dieses Schema, ohne etwas zu erfinden:
+- title, klasse, aufgabe: Name der Schularbeit, Klasse/Schulstufe, Aufgabenstellung bzw. Textsorte.
+- levels: die Niveaus (z. B. Standard und AHS) mit Mindestwortzahl, sonst eine Stufe "Standard" mit minWords null.
+- criteria: jeder Teilbereich, der eine eigene Teilnote ergibt, mit seiner Gewichtung (weight, z. B. 2 wenn er doppelt zählt).
+  kind "checklist": Elemente zum Abhaken in groups (Überschrift + Elemente), step = Notenschritt pro fehlendem Element (meist 0,5), deductions = Abzüge mit Wert, wordRule = true wenn es Abzüge für zu wenige Wörter gibt, failLabel = wann der Teilbereich automatisch 5 ist (sonst leer).
+  kind "scale": Teilbereich, den man einschätzt; descriptions = genau 5 Beschreibungen für die Noten 1 bis 5.
+  kind "fq": Fehlerquotient; limits = je Niveau (level = Name des Niveaus) die 8 Obergrenzen für die Teilnoten 1; 1,5; 2; 2,5; 3; 3,5; 4; 4,5. rules = Zählregeln für Fehler.
+  Felder, die zur Art nicht passen, leer lassen (leere Listen, 0, false, "").
+- decisive: Name des Teilbereichs, der bei einem Grenzfall auf x,50 entscheidet, sonst "".
+- knockout: Name des Teilbereichs, bei dem Teilnote 5 automatisch Nicht genügend bedeutet, sonst "".`,
+  });
+  // Mit Streaming, weil lange Antworten sonst an der Zeitgrenze des SDK scheitern.
+  const response = await client(apiKey).beta.messages.stream({
+    model: MODEL,
+    max_tokens: 32000,
+    thinking: { type: "adaptive" },
+    output_config: { effort: "medium", format: betaZodOutputFormat(RubricDraftSchema) },
+    betas: ["server-side-fallback-2026-07-01"],
+    fallbacks: "default",
+    system: SYSTEM_PROMPT,
+    messages: [{ role: "user", content }],
+  }).finalMessage();
+  if (!response.parsed_output) throw new Error("Claude konnte den Notenschlüssel nicht lesen.");
+  return response.parsed_output;
+}
+
+const GradeSchema = z.object({
+  readable: z.boolean(),
+  words: z.number(),
+  errors: z.number(),
+  criteria: z.array(
+    z.object({
+      id: z.string(),
+      checked: z.array(z.number()),
+      deductions: z.array(z.number()),
+      failed: z.boolean(),
+      note: z.number(),
+      comment: z.string(),
+    }),
+  ),
+  feedback: z.string(),
+  hinweise: z.string(),
+});
+
+export type GradeSuggestion = z.infer<typeof GradeSchema>;
+
+// Claude liest eine eingescannte Schularbeit und schlägt eine Bewertung nach dem Schema vor.
+export async function gradeScan(
+  apiKey: string,
+  rubricText: string,
+  levelLabel: string,
+  files: ScanFile[],
+): Promise<GradeSuggestion> {
+  const response = await client(apiKey).beta.messages.stream({
+    model: MODEL,
+    max_tokens: 32000,
+    thinking: { type: "adaptive" },
+    output_config: { effort: "high", format: betaZodOutputFormat(GradeSchema) },
+    betas: ["server-side-fallback-2026-07-01"],
+    fallbacks: "default",
+    system: `${SYSTEM_PROMPT}\n\nDu unterstützt Sigrid als Lehrerin beim Korrigieren. Dein Ergebnis ist ein Vorschlag, den sie prüft.`,
+    messages: [
+      {
+        role: "user",
+        content: [
+          ...scanBlocks(files),
+          {
+            type: "text",
+            text: `Das ist eine eingescannte Schularbeit (Niveau: ${levelLabel}). Bewerte sie nach diesem Schema:
+
+${rubricText}
+
+Vorgehen:
+- Lies den handschriftlichen Text sorgfältig. readable = false, wenn große Teile unleserlich sind.
+- words: Anzahl der Wörter des Schülertextes (ohne Aufgabenstellung, Name und Überschrift der Angabe).
+- errors: Fehleranzahl nach den Zählregeln, Beistrichfehler als 0,5.
+- criteria: für jeden Teilbereich ein Eintrag mit seiner id. Bei Checklisten die Nummern der erfüllten Elemente in checked und der zutreffenden Abzüge in deductions; failed = true nur wenn die Aufgabe verfehlt ist. Bei Einschätzungen note von 1 bis 5 in halben Schritten. Bei Checklisten und Fehlerquotient note = 0. comment: ein bis zwei Sätze Begründung.
+- feedback: drei bis vier freundliche Sätze für das Kind in der Du-Form: was gelungen ist und was es beim nächsten Mal verbessern kann.
+- hinweise: worauf Sigrid beim Nachkorrigieren achten soll (unsichere Stellen, schwer lesbare Wörter). Sonst "".
+Nenne niemals den Namen des Kindes, auch wenn er auf dem Blatt steht.`,
+          },
+        ],
+      },
+    ],
+  }).finalMessage();
+  if (response.stop_reason === "refusal") throw new Error("Claude hat diese Arbeit nicht bewertet.");
+  if (!response.parsed_output) throw new Error("Claude konnte keine Bewertung erstellen.");
+  return response.parsed_output;
+}
