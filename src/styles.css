@@ -297,3 +297,5 @@ table.grades.limits input { width: 90px; padding: 6px 8px; }
 .confirm { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; }
 .note { background: #eef6ee; color: #2f5d34; padding: 8px 12px; border-radius: 8px; font-size: 14px; }
 .cleanup-item select { width: auto; padding: 2px 6px; margin: 0 2px; }
+.content button.danger { color: var(--danger); }
+.content button.danger-solid { background: var(--danger); border-color: var(--danger); color: white; }

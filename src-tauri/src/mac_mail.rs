@@ -124,6 +124,15 @@ for (const m of found) {
 JSON.stringify({ moved, skipped });
 "#;
 
+// Löschen wie in Apple Mail: Die Mails landen im Papierkorb des Kontos und lassen sich von dort zurückholen.
+const DELETE_SCRIPT: &str = r#"
+let deleted = 0;
+for (const m of found) {
+  try { Mail.delete(m); deleted++; } catch (e) {}
+}
+JSON.stringify(deleted);
+"#;
+
 // Sucht in den Kopfzeilen nach dem Abmelde-Link, den seriöse Newsletter mitschicken.
 const UNSUBSCRIBE_SCRIPT: &str = r#"
 const Mail = Application('Mail');
@@ -234,6 +243,10 @@ pub fn set_flag(ids: &[String], flagged: bool) -> Result<u32, String> {
 
 pub fn archive(ids: &[String]) -> Result<ArchiveResult, String> {
     run_jxa(&with_mails(ids, ARCHIVE_SCRIPT)?)
+}
+
+pub fn delete(ids: &[String]) -> Result<u32, String> {
+    run_jxa(&with_mails(ids, DELETE_SCRIPT)?)
 }
 
 pub fn unsubscribe_link(id: &str) -> Result<Option<String>, String> {

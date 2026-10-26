@@ -73,6 +73,14 @@ async fn mac_archive(ids: Vec<String>) -> Result<mac_mail::ArchiveResult, String
 
 #[cfg(target_os = "macos")]
 #[tauri::command]
+async fn mac_delete(ids: Vec<String>) -> Result<u32, String> {
+    tauri::async_runtime::spawn_blocking(move || mac_mail::delete(&ids))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[cfg(target_os = "macos")]
+#[tauri::command]
 async fn mac_unsubscribe_link(id: String) -> Result<Option<String>, String> {
     tauri::async_runtime::spawn_blocking(move || mac_mail::unsubscribe_link(&id))
         .await
@@ -113,6 +121,7 @@ pub fn run() {
         mac_mark_read,
         mac_set_flag,
         mac_archive,
+        mac_delete,
         mac_unsubscribe_link,
         mac_capture_window
     ]);

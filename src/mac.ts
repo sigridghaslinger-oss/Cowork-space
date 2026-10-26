@@ -73,6 +73,11 @@ export async function archiveMac(ids: string[]): Promise<{ moved: number; skippe
   return invoke("mac_archive", { ids });
 }
 
+// Verschiebt in den Papierkorb des Kontos (wie die Löschen-Taste in Apple Mail).
+export async function deleteMac(ids: string[]): Promise<number> {
+  return invoke<number>("mac_delete", { ids });
+}
+
 export async function getMacUnsubscribeLink(id: string): Promise<string | null> {
   return invoke<string | null>("mac_unsubscribe_link", { id });
 }

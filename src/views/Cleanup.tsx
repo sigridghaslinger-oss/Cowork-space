@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { checkInbox, type SenderKind } from "../claude";
-import { archiveMac, getMacInbox, getMacUnsubscribeLink, markMacRead, setMacFlag, type InboxMail } from "../mac";
+import { archiveMac, deleteMac, getMacInbox, getMacUnsubscribeLink, markMacRead, setMacFlag, type InboxMail } from "../mac";
 import { getApiKey, getSetting, setSetting } from "../settings";
 import { ReplyPanel } from "./Mails";
 
@@ -156,6 +156,15 @@ export default function Cleanup() {
     );
   };
 
+  const remove = (list: InboxMail[]) => {
+    const ids = new Set(list.map((m) => m.id));
+    return run(
+      async () =>
+        `${await deleteMac([...ids])} Mails gelöscht. Sie liegen im Papierkorb von Apple Mail, falls du eine zurückholen willst.`,
+      (all) => all.filter((m) => !ids.has(m.id)),
+    );
+  };
+
   const markRead = (list: InboxMail[]) => {
     const ids = new Set(list.map((m) => m.id));
     return run(
@@ -276,12 +285,21 @@ export default function Cleanup() {
               <span>
                 {bulkSenders.length} Absender mit zusammen {allBulkMails.length} Mails.
               </span>
-              <ConfirmButton
-                label={`Alle ${allBulkMails.length} archivieren`}
-                question={`Wirklich ${allBulkMails.length} Newsletter- und Werbemails ins Archiv verschieben? Gelöscht wird nichts.`}
-                disabled={busy}
-                onConfirm={() => archive(allBulkMails)}
-              />
+              <div className="actions">
+                <ConfirmButton
+                  label={`Alle ${allBulkMails.length} archivieren`}
+                  question={`Wirklich ${allBulkMails.length} Newsletter- und Werbemails ins Archiv verschieben? Gelöscht wird nichts.`}
+                  disabled={busy}
+                  onConfirm={() => archive(allBulkMails)}
+                />
+                <ConfirmButton
+                  label={`Alle ${allBulkMails.length} löschen`}
+                  question={`Wirklich ${allBulkMails.length} Newsletter- und Werbemails löschen? Sie kommen in den Papierkorb.`}
+                  danger
+                  disabled={busy}
+                  onConfirm={() => remove(allBulkMails)}
+                />
+              </div>
             </div>
             <ul className="list cleanup-list">
               {bulkSenders.map((s) => {
@@ -307,6 +325,13 @@ export default function Cleanup() {
                         disabled={busy}
                         onConfirm={() => archive(s.mails.filter((m) => !m.flagged))}
                       />
+                      <ConfirmButton
+                        label="Löschen"
+                        question={`${s.mails.length} Mails von ${s.name} in den Papierkorb?`}
+                        danger
+                        disabled={busy}
+                        onConfirm={() => remove(s.mails.filter((m) => !m.flagged))}
+                      />
                       <button className="ghost" onClick={() => unsubscribe(s)}>Abmelden</button>
                     </div>
                   </li>
@@ -319,7 +344,7 @@ export default function Cleanup() {
 
       <article className="card">
         <h3>🧹 Altes wegräumen</h3>
-        <p className="hint">Mails mit Fähnchen bleiben immer liegen. Archivierte Mails findest du in Apple Mail unter „Archiv“.</p>
+        <p className="hint">Mails mit Fähnchen bleiben immer liegen. Archivierte Mails findest du in Apple Mail unter „Archiv“, gelöschte im Papierkorb.</p>
         <div className="cleanup-item">
           <span>
             Gelesene Mails, älter als{" "}
@@ -331,12 +356,21 @@ export default function Cleanup() {
             </select>
             : <strong>{oldRead.length}</strong>
           </span>
-          <ConfirmButton
-            label="Archivieren"
-            question={`Wirklich ${oldRead.length} gelesene Mails ins Archiv verschieben? Gelöscht wird nichts.`}
-            disabled={busy || oldRead.length === 0}
-            onConfirm={() => archive(oldRead)}
-          />
+          <div className="actions">
+            <ConfirmButton
+              label="Archivieren"
+              question={`Wirklich ${oldRead.length} gelesene Mails ins Archiv verschieben? Gelöscht wird nichts.`}
+              disabled={busy || oldRead.length === 0}
+              onConfirm={() => archive(oldRead)}
+            />
+            <ConfirmButton
+              label="Löschen"
+              question={`Wirklich ${oldRead.length} gelesene Mails löschen? Sie kommen in den Papierkorb.`}
+              danger
+              disabled={busy || oldRead.length === 0}
+              onConfirm={() => remove(oldRead)}
+            />
+          </div>
         </div>
         <div className="cleanup-item">
           <span>
@@ -355,11 +389,17 @@ export default function Cleanup() {
 }
 
 // Fragt vor jeder Änderung in Apple Mail nach. Erst „Ja“ führt sie aus.
-function ConfirmButton(props: { label: string; question: string; disabled?: boolean; onConfirm: () => void }) {
+function ConfirmButton(props: {
+  label: string;
+  question: string;
+  danger?: boolean;
+  disabled?: boolean;
+  onConfirm: () => void;
+}) {
   const [asking, setAsking] = useState(false);
   if (!asking) {
     return (
-      <button onClick={() => setAsking(true)} disabled={props.disabled}>
+      <button className={props.danger ? "danger" : undefined} onClick={() => setAsking(true)} disabled={props.disabled}>
         {props.label}
       </button>
     );
@@ -368,7 +408,7 @@ function ConfirmButton(props: { label: string; question: string; disabled?: bool
     <span className="confirm">
       <span>{props.question}</span>
       <button
-        className="primary"
+        className={props.danger ? "danger-solid" : "primary"}
         onClick={() => {
           setAsking(false);
           props.onConfirm();
