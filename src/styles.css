@@ -396,3 +396,4 @@ table.grades.spiegel .bar { display: inline-block; height: 10px; border-radius: 
 .note-box select { width: 100%; margin: 6px 0 2px; font-size: 16px; }
 .check.not-due { opacity: 0.45; }
 .level-pill { margin-left: 6px; background: var(--accent-soft); color: var(--accent); }
+.lega-check { align-self: end; padding-bottom: 10px; white-space: nowrap; }

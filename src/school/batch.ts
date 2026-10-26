@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { getApiKey, getSetting, setSetting } from "../settings";
 import { gradeScan, type GradeSuggestion, type ScanFile } from "../claude";
 import { describeRubric, newId, type Rubric } from "./rubric";
+import { LEGA_RULE } from "./lega";
 
 export type BatchItem = {
   id: string;
@@ -12,6 +13,7 @@ export type BatchItem = {
   nr: string;
   level: string; // Niveau-id
   pages: string[]; // Dateinamen, nur zur Anzeige
+  lega?: boolean; // Legasthenie: gleiche Fehler zählen als eine Fehlergruppe
   status: "wartet" | "liest" | "fertig" | "fehler" | "erledigt";
   suggestion?: GradeSuggestion;
   error?: string;
@@ -60,12 +62,12 @@ export function useBatch(rubricId: string): BatchItem[] {
   return items[rubricId] ?? [];
 }
 
-export function addToBatch(rubric: Rubric, works: { klasse: string; nr: string; level: string; files: { name: string; file: ScanFile }[] }[]) {
+export function addToBatch(rubric: Rubric, works: { klasse: string; nr: string; level: string; lega: boolean; files: { name: string; file: ScanFile }[] }[]) {
   const list = items[rubric.id] ?? [];
   const added = works.map((w) => {
     const id = newId();
     scans.set(id, w.files.map((f) => f.file));
-    return { id, klasse: w.klasse, nr: w.nr, level: w.level, pages: w.files.map((f) => f.name), status: "wartet" as const };
+    return { id, klasse: w.klasse, nr: w.nr, level: w.level, lega: w.lega, pages: w.files.map((f) => f.name), status: "wartet" as const };
   });
   // Gleiche Klasse und Nr. ersetzt einen älteren Eintrag.
   const keys = new Set(added.map((a) => `${a.klasse}|${a.nr}`));
@@ -94,7 +96,7 @@ async function run(rubric: Rubric) {
         patch(rubric.id, next.id, { status: "liest" });
         const label = rubric.levels.find((l) => l.id === next.level)?.label ?? "";
         try {
-          const suggestion = await gradeScan(apiKey, describeRubric(rubric), label, files);
+          const suggestion = await gradeScan(apiKey, describeRubric(rubric), label, files, next.lega ? LEGA_RULE : "");
           scans.delete(next.id);
           patch(rubric.id, next.id, { status: "fertig", suggestion, error: undefined });
         } catch (e) {

@@ -326,6 +326,7 @@ export async function gradeScan(
   rubricText: string,
   levelLabel: string,
   files: ScanFile[],
+  extraRule = "",
 ): Promise<GradeSuggestion> {
   const response = await client(apiKey).beta.messages.stream({
     model: MODEL,
@@ -349,7 +350,7 @@ ${rubricText}
 Vorgehen:
 - Lies den handschriftlichen Text sorgfältig. readable = false, wenn große Teile unleserlich sind.
 - words: Anzahl der Wörter des Schülertextes (ohne Aufgabenstellung, Name und Überschrift der Angabe).
-- errors: Fehleranzahl nach den Zählregeln, Beistrichfehler als 0,5.
+- errors: Fehleranzahl nach den Zählregeln, Beistrichfehler als 0,5.${extraRule ? `\n- Wichtig: ${extraRule}` : ""}
 - criteria: für jeden Teilbereich ein Eintrag mit seiner id. Bei Checklisten die Nummern der erfüllten Elemente in checked und der zutreffenden Abzüge in deductions; failed = true nur wenn die Aufgabe verfehlt ist. Bei Einschätzungen note von 1 bis 5 in halben Schritten. Bei Checklisten und Fehlerquotient note = 0. comment: ein bis zwei Sätze Begründung.
 - feedback: drei bis vier freundliche Sätze für das Kind in der Du-Form: was gelungen ist und was es beim nächsten Mal verbessern kann.
 - hinweise: worauf Sigrid beim Nachkorrigieren achten soll (unsichere Stellen, schwer lesbare Wörter). Sonst "".
