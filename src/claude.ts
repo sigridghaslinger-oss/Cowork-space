@@ -191,7 +191,7 @@ ${content}
 }
 
 export async function streamCorrectionPlan(apiKey: string, context: string, onText: (delta: string) => void) {
-  const prompt = `Ich bin Lehrerin und muss Schularbeiten korrigieren. Erstelle mir einen realistischen Korrekturplan.
+  const prompt = `Ich bin Lehrerin und muss Schularbeiten, Tests und Diktate korrigieren. Erstelle mir einen realistischen Korrekturplan.
 
 ${context}
 
@@ -260,16 +260,25 @@ const RubricDraftSchema = z.object({
 export type RubricDraft = z.infer<typeof RubricDraftSchema>;
 
 // Liest einen Notenschlüssel (PDF oder Text) und macht daraus ein Bewertungsschema für die App.
-export async function rubricFromKey(apiKey: string, input: { pdf?: string; text?: string }): Promise<RubricDraft> {
-  const content: Anthropic.Beta.BetaContentBlockParam[] = [];
-  if (input.pdf) content.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: input.pdf } });
+export async function rubricFromKey(
+  apiKey: string,
+  input: { files?: ScanFile[]; text?: string; art?: string },
+): Promise<RubricDraft> {
+  const art = input.art || "Schularbeit";
+  const content: Anthropic.Beta.BetaContentBlockParam[] = scanBlocks(input.files ?? []);
+  const intro = [
+    input.files?.length ? `Die Dateien sind mein Notenschlüssel bzw. meine Bewertungskriterien für eine/n ${art}.` : "",
+    input.text ? `Hier ist mein Notenschlüssel (${art}):\n\n${input.text}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
   content.push({
     type: "text",
-    text: `${input.text ? `Hier ist mein Notenschlüssel:\n\n${input.text}\n\n` : "Das PDF ist mein Notenschlüssel für eine Schularbeit. "}Übertrage ihn in dieses Schema, ohne etwas zu erfinden:
-- title, klasse, aufgabe: Name der Schularbeit, Klasse/Schulstufe, Aufgabenstellung bzw. Textsorte.
+    text: `${intro}\n\nÜbertrage ihn in dieses Schema, ohne etwas zu erfinden:
+- title, klasse, aufgabe: Name der Arbeit, Klasse/Schulstufe, Aufgabenstellung bzw. Textsorte.
 - levels: die Niveaus (z. B. Standard und AHS) mit Mindestwortzahl, sonst eine Stufe "Standard" mit minWords null.
 - criteria: jeder Teilbereich, der eine eigene Teilnote ergibt, mit seiner Gewichtung (weight, z. B. 2 wenn er doppelt zählt).
-  kind "checklist": Elemente zum Abhaken in groups (Überschrift + Elemente), step = Notenschritt pro fehlendem Element (meist 0,5), deductions = Abzüge mit Wert, wordRule = true wenn es Abzüge für zu wenige Wörter gibt, failLabel = wann der Teilbereich automatisch 5 ist (sonst leer).
+  kind "checklist": Elemente zum Abhaken in groups (Überschrift + Elemente; ein Element, das nur auf einem Niveau verlangt ist, beginnt mit dem Niveau in eckigen Klammern, z. B. "[AHS] Gegenargument entkräftet"), step = Notenschritt pro fehlendem Element (meist 0,5), deductions = Abzüge mit Wert, wordRule = true wenn es Abzüge für zu wenige Wörter gibt, failLabel = wann der Teilbereich automatisch 5 ist (sonst leer).
   kind "scale": Teilbereich, den man einschätzt; descriptions = genau 5 Beschreibungen für die Noten 1 bis 5.
   kind "fq": Fehlerquotient; limits = je Niveau (level = Name des Niveaus) die 8 Obergrenzen für die Teilnoten 1; 1,5; 2; 2,5; 3; 3,5; 4; 4,5. rules = Zählregeln für Fehler.
   Felder, die zur Art nicht passen, leer lassen (leere Listen, 0, false, "").
@@ -317,6 +326,7 @@ export async function gradeScan(
   rubricText: string,
   levelLabel: string,
   files: ScanFile[],
+  extraRule = "",
 ): Promise<GradeSuggestion> {
   const response = await client(apiKey).beta.messages.stream({
     model: MODEL,
@@ -340,7 +350,7 @@ ${rubricText}
 Vorgehen:
 - Lies den handschriftlichen Text sorgfältig. readable = false, wenn große Teile unleserlich sind.
 - words: Anzahl der Wörter des Schülertextes (ohne Aufgabenstellung, Name und Überschrift der Angabe).
-- errors: Fehleranzahl nach den Zählregeln, Beistrichfehler als 0,5.
+- errors: Fehleranzahl nach den Zählregeln, Beistrichfehler als 0,5.${extraRule ? `\n- Wichtig: ${extraRule}` : ""}
 - criteria: für jeden Teilbereich ein Eintrag mit seiner id. Bei Checklisten die Nummern der erfüllten Elemente in checked und der zutreffenden Abzüge in deductions; failed = true nur wenn die Aufgabe verfehlt ist. Bei Einschätzungen note von 1 bis 5 in halben Schritten. Bei Checklisten und Fehlerquotient note = 0. comment: ein bis zwei Sätze Begründung.
 - feedback: drei bis vier freundliche Sätze für das Kind in der Du-Form: was gelungen ist und was es beim nächsten Mal verbessern kann.
 - hinweise: worauf Sigrid beim Nachkorrigieren achten soll (unsichere Stellen, schwer lesbare Wörter). Sonst "".

@@ -190,11 +190,11 @@ export default function RubricEditor({ initial, isNew, onSave, onCancel, onDelet
           {c.kind === "checklist" && (
             <>
               <label className="field wide">
-                Elemente (eine Zeile pro Element, Überschriften mit „:“ am Ende)
+                Elemente (eine Zeile pro Element, Überschriften mit „:“ am Ende, „[AHS]“ am Anfang = nur für AHS verlangt)
                 <textarea
                   className="tall"
                   value={texts[c.id]?.groups ?? ""}
-                  placeholder={"Einleitung:\nThema genannt\nQuelle genannt\nHauptteil:\n…"}
+                  placeholder={"Einleitung:\nThema genannt\nQuelle genannt\nHauptteil:\n…\n[AHS] Gegenargument entkräftet"}
                   onChange={(e) => setTexts({ ...texts, [c.id]: { ...texts[c.id], groups: e.target.value } })}
                 />
               </label>

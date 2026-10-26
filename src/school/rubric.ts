@@ -171,6 +171,22 @@ export const usesWords = (r: Rubric) =>
 export const usesErrors = (r: Rubric) => r.criteria.some((c) => c.kind === "fq");
 export const itemCount = (c: ChecklistCriterion) => c.groups.reduce((n, g) => n + g.items.length, 0);
 
+// Elemente, die nur für ein Niveau gelten, beginnen mit dem Niveau in eckigen Klammern, z. B. „[AHS] Gegenargument“.
+const LEVEL_MARK = /^\[([^\]]+)\]\s*/;
+export const itemLevel = (item: string) => item.match(LEVEL_MARK)?.[1].trim() ?? "";
+export const itemText = (item: string) => item.replace(LEVEL_MARK, "");
+export const itemApplies = (item: string, levelLabel: string) => {
+  const l = itemLevel(item);
+  return !l || l.toLowerCase() === levelLabel.toLowerCase();
+};
+const allItems = (c: ChecklistCriterion) => c.groups.flatMap((g) => g.items);
+// Wie viele Elemente auf diesem Niveau verlangt sind, und wie viele davon angehakt.
+export function levelCount(c: ChecklistCriterion, levelLabel: string, checked: boolean[]) {
+  const items = allItems(c);
+  const due = items.map((it) => itemApplies(it, levelLabel));
+  return { total: due.filter(Boolean).length, done: due.filter((d, i) => d && checked[i]).length };
+}
+
 // Eingaben je Teilbereich.
 export type CriterionInput = { checked: boolean[]; deductions: boolean[]; failed: boolean; note: number };
 
@@ -228,9 +244,9 @@ export function fehlerNote(limits: number[] | undefined, fq: number): number {
 function criterionNote(r: Rubric, c: Criterion, v: CriterionInput, input: EvalInput): CriterionResult {
   const head = { id: c.id, name: c.name, weight: c.weight };
   if (c.kind === "checklist") {
-    const done = v.checked.filter(Boolean).length;
-    const base = Math.min(5, 1 + Math.max(0, itemCount(c) - done) * c.step);
     const level = r.levels.find((l) => l.id === input.level);
+    const { total, done } = levelCount(c, level?.label ?? "", v.checked);
+    const base = Math.min(5, 1 + Math.max(0, total - done) * c.step);
     const wd = c.wordRule ? wordDeduction(level?.minWords ?? null, input.words) : 0;
     const extra = c.deductions.reduce((s, d, i) => s + (v.deductions[i] ? d.value : 0), 0);
     const note = v.failed ? 5 : Math.min(5, base + wd + extra);
@@ -290,7 +306,8 @@ export function describeRubric(r: Rubric): string {
       let i = 0;
       for (const g of c.groups) {
         if (g.title) lines.push(`  ${g.title}:`);
-        for (const item of g.items) lines.push(`    Element ${i++}: ${item}`);
+        for (const item of g.items)
+          lines.push(`    Element ${i++}: ${itemText(item)}${itemLevel(item) ? ` (nur auf Niveau ${itemLevel(item)} verlangt)` : ""}`);
       }
       c.deductions.forEach((d, j) => lines.push(`  Abzug ${j}: ${d.label} (−${d.value})`));
       if (c.failLabel) lines.push(`  Aufgabe verfehlt, wenn: ${c.failLabel}`);
