@@ -3,6 +3,7 @@ import Chat, { emptyChat, type ChatState } from "./views/Chat";
 import Today from "./views/Today";
 import Settings from "./views/Settings";
 import Mails from "./views/Mails";
+import School from "./views/School";
 import { AREAS, areaById, type AreaId } from "./areas";
 
 type View = "today" | "mails" | "chat" | "settings";
@@ -10,7 +11,7 @@ type View = "today" | "mails" | "chat" | "settings";
 const NAV: { id: View; label: string; icon: string }[] = [
   { id: "today", label: "Heute", icon: "☀️" },
   { id: "mails", label: "Mails", icon: "📬" },
-  { id: "chat", label: "Chat", icon: "💬" },
+  { id: "chat", label: "Bereich", icon: "🗂️" },
   { id: "settings", label: "Einstellungen", icon: "⚙️" },
 ];
 
@@ -61,7 +62,14 @@ export default function App() {
         <main className="content">
           {view === "today" && <Today />}
           {view === "mails" && <Mails />}
-          {view === "chat" && (
+          {view === "chat" && areaId === "schule" && (
+            <School
+              area={area}
+              chat={chats.schule ?? emptyChat}
+              setChat={(id, update) => setChats((all) => ({ ...all, [id]: update(all[id] ?? emptyChat) }))}
+            />
+          )}
+          {view === "chat" && areaId !== "schule" && (
             <Chat
               key={areaId}
               area={area}
