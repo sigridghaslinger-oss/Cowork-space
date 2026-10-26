@@ -179,3 +179,32 @@ button.primary:disabled { opacity: 0.45; cursor: default; }
 .choice input { margin-top: 3px; accent-color: var(--accent); }
 .choice span { display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
 .choice small { color: var(--muted); font-size: 13px; }
+
+/* Mails */
+.actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
+.content button.chip {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--area-soft, var(--panel));
+  font-size: 13px;
+}
+.content button.chip.active { border-color: var(--area-strong, var(--accent)); font-weight: 600; }
+.group { margin-top: 24px; }
+.group > h3 { font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 10px; }
+.card.mail { margin-bottom: 10px; padding: 14px 18px; }
+.mail-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; cursor: pointer; }
+.mail-from { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; }
+.meta-inline { color: var(--muted); font-size: 12px; }
+.mail-subject { font-size: 14px; margin-top: 4px; }
+.card .mail-summary { margin-top: 4px; font-size: 13px; }
+.pill { padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.content button.ghost { border: none; background: transparent; color: var(--accent); font-weight: 600; white-space: nowrap; }
+.reply { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
+.reply .composer input { flex: 1; }
+.draft { min-height: 180px; resize: vertical; line-height: 1.5; font-size: 14px; }
+.card.payments { background: #fbf3e4; border-color: transparent; margin-bottom: 8px; }
+@media (prefers-color-scheme: dark) {
+  .card.payments { background: color-mix(in srgb, #fbf3e4 12%, var(--panel)); }
+}

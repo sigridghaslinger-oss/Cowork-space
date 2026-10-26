@@ -3,11 +3,15 @@
 Eine Mac-App, in der Claude beim Arbeitsalltag hilft: Mails im Blick behalten, Mails entwerfen und zusammenfassen,
 Tagesplanung mit Terminen und Stundenplan, Erinnerungen an Zahlungen und Notizen bearbeiten.
 
-## Stand (Version 0.3)
+## Stand (Version 0.4)
 
 - **Heute:** Termine und ungelesene Mails, standardmäßig direkt aus der Kalender- und Mail-App des Macs
   (alle dort eingerichteten Konten: iCloud, Gmail, Outlook …). Alternativ über Google.
   Ein Klick auf **Tagesplan erstellen** lässt Claude den Tag planen und an fällige Zahlungen aus den Mails erinnern.
+- **Mails:** Ungelesene Mails. **Mit Claude sortieren** ordnet sie den Bereichen zu, nach Dringlichkeit
+  („Heute erledigen“, „Später“, „Nur zur Info“) und sammelt Rechnungen unter **Zahlungen**.
+  Bei jeder Mail entwirft **Antworten** einen Text, der sich als Antwort in Apple Mail öffnen lässt.
+  Verschickt wird nur, was du selbst abschickst.
 - **Chat:** Unterhaltung mit Claude, Antworten erscheinen live.
 - **Einstellungen:** API-Schlüssel von Anthropic hinterlegen (wird nur lokal auf dem Mac gespeichert).
 

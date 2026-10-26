@@ -2,12 +2,14 @@ import { useState, type CSSProperties } from "react";
 import Chat, { emptyChat, type ChatState } from "./views/Chat";
 import Today from "./views/Today";
 import Settings from "./views/Settings";
+import Mails from "./views/Mails";
 import { AREAS, areaById, type AreaId } from "./areas";
 
-type View = "today" | "chat" | "settings";
+type View = "today" | "mails" | "chat" | "settings";
 
 const NAV: { id: View; label: string; icon: string }[] = [
   { id: "today", label: "Heute", icon: "☀️" },
+  { id: "mails", label: "Mails", icon: "📬" },
   { id: "chat", label: "Chat", icon: "💬" },
   { id: "settings", label: "Einstellungen", icon: "⚙️" },
 ];
@@ -58,6 +60,7 @@ export default function App() {
         </nav>
         <main className="content">
           {view === "today" && <Today />}
+          {view === "mails" && <Mails />}
           {view === "chat" && (
             <Chat
               key={areaId}
