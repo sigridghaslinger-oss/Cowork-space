@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { isGoogleConnected } from "../google/auth";
-import { getEventsForDay, type CalendarEvent } from "../google/calendar";
-import { getRecentUnread, type MailSummary } from "../google/gmail";
+import type { CalendarEvent } from "../google/calendar";
+import type { MailSummary } from "../google/gmail";
+import { getSource, isSourceReady, loadToday, type Source } from "../sources";
 import { streamDayPlan } from "../claude";
 import { getApiKey } from "../settings";
 
@@ -20,6 +20,7 @@ function describe(events: CalendarEvent[], mails: MailSummary[]): string {
 }
 
 export default function Today() {
+  const [source, setSource] = useState<Source>("mac");
   const [connected, setConnected] = useState<boolean | null>(null);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [mails, setMails] = useState<MailSummary[]>([]);
@@ -30,13 +31,14 @@ export default function Today() {
 
   const date = new Date().toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long" });
 
-  async function refresh() {
+  async function refresh(from: Source = source) {
     setLoading(true);
     setError(null);
     try {
-      const [ev, ml] = await Promise.all([getEventsForDay(new Date()), getRecentUnread()]);
-      setEvents(ev);
-      setMails(ml);
+      const data = await loadToday(from);
+      setEvents(data.events);
+      setMails(data.mails);
+      if (data.warnings.length) setError(data.warnings.join(" "));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -45,9 +47,11 @@ export default function Today() {
   }
 
   useEffect(() => {
-    isGoogleConnected().then((ok) => {
+    getSource().then(async (src) => {
+      setSource(src);
+      const ok = await isSourceReady(src);
       setConnected(ok);
-      if (ok) refresh();
+      if (ok) refresh(src);
     });
   }, []);
 
@@ -73,7 +77,7 @@ export default function Today() {
     return (
       <section>
         <h2>Heute, {date}</h2>
-        <p className="hint">Verbinde unter Einstellungen dein Google-Konto, dann erscheinen hier deine Termine und Mails.</p>
+        <p className="hint">Verbinde unter Einstellungen dein Google-Konto oder stell die Quelle auf „Mac“ um, dann erscheinen hier deine Termine und Mails.</p>
       </section>
     );
   }
@@ -82,7 +86,7 @@ export default function Today() {
     <section>
       <div className="row">
         <h2>Heute, {date}</h2>
-        <button onClick={refresh} disabled={loading}>{loading ? "Lädt…" : "Aktualisieren"}</button>
+        <button onClick={() => refresh()} disabled={loading}>{loading ? "Lädt…" : "Aktualisieren"}</button>
       </div>
       {error && <p className="error">{error}</p>}
 

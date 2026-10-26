@@ -162,3 +162,20 @@ button.primary:disabled { opacity: 0.45; cursor: default; }
 .bubble.assistant { align-self: flex-start; background: var(--panel); border: 1px solid var(--border); box-shadow: var(--shadow); border-bottom-left-radius: 6px; }
 .composer { display: flex; gap: 10px; align-items: flex-end; }
 .composer textarea { flex: 1; resize: none; height: 64px; border-radius: 14px; }
+
+/* Auswahl der Quelle */
+.choice { display: flex; flex-direction: column; gap: 10px; max-width: 520px; }
+.choice label {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel);
+  cursor: pointer;
+}
+.choice label.selected { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.choice input { margin-top: 3px; accent-color: var(--accent); }
+.choice span { display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
+.choice small { color: var(--muted); font-size: 13px; }
