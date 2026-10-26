@@ -1,4 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
+import { z } from "zod";
+import type { MailSummary } from "./google/gmail";
 
 export type ChatMessage = Anthropic.Beta.BetaMessageParam;
 
@@ -51,5 +54,69 @@ Erstelle mir einen kurzen Tagesplan:
 2. Welche Mails ich heute beantworten oder erledigen sollte, je ein Satz dazu.
 3. Fällige Zahlungen oder Rechnungen, die in den Mails erwähnt werden, mit Betrag und Frist, falls genannt. Wenn keine dabei sind, schreib das.
 Schreib ohne Einleitung, mit kurzen Überschriften.`;
+  await streamReply(apiKey, [{ role: "user", content: prompt }], onText);
+}
+
+const MailSortSchema = z.object({
+  mails: z.array(
+    z.object({
+      id: z.string(),
+      area: z.enum(["schule", "lernanker", "privat", "ausbildung", "buch", "sonstiges"]),
+      urgency: z.enum(["heute", "spaeter", "info"]),
+      summary: z.string(),
+      payment: z
+        .object({ amount: z.string().nullable(), due: z.string().nullable() })
+        .nullable(),
+    }),
+  ),
+});
+
+export type MailSort = z.infer<typeof MailSortSchema>["mails"][number];
+
+export async function sortMails(apiKey: string, mails: MailSummary[]): Promise<MailSort[]> {
+  const list = mails
+    .map((m) => `<mail id="${m.id}">\nVon: ${m.from}\nBetreff: ${m.subject}\nAuszug: ${m.snippet}\n</mail>`)
+    .join("\n");
+  const response = await client(apiKey).beta.messages.parse({
+    model: MODEL,
+    max_tokens: 16000,
+    output_config: { effort: "low", format: betaZodOutputFormat(MailSortSchema) },
+    betas: ["server-side-fallback-2026-07-01"],
+    fallbacks: "default",
+    system: SYSTEM_PROMPT,
+    messages: [
+      {
+        role: "user",
+        content: `Ordne jede dieser ungelesenen Mails ein.
+- area: zu welchem meiner Bereiche sie gehört (Schule, Lernanker, Privat, Ausbildung, Buch), sonst "sonstiges".
+- urgency: "heute" wenn ich heute reagieren oder etwas erledigen muss, "spaeter" wenn es Zeit hat, "info" wenn ich nichts tun muss (Newsletter, Bestätigungen, Werbung).
+- summary: ein kurzer deutscher Satz, worum es geht und was zu tun ist.
+- payment: nur bei Rechnungen, Zahlungsaufforderungen oder Abbuchungen, mit Betrag und Frist wie in der Mail genannt (sonst null).
+
+${list}`,
+      },
+    ],
+  });
+  if (!response.parsed_output) throw new Error("Claude konnte die Mails nicht sortieren.");
+  return response.parsed_output.mails;
+}
+
+export async function streamReplyDraft(
+  apiKey: string,
+  mail: MailSummary,
+  content: string,
+  wish: string,
+  onText: (delta: string) => void,
+): Promise<void> {
+  const prompt = `Entwirf eine Antwort auf diese Mail in meinem Namen (Sigrid).
+${wish ? `Was ich antworten möchte: ${wish}\n` : ""}
+Schreib nur den Antworttext mit Anrede und Gruß, ohne Betreffzeile und ohne Erklärungen. Passe Ton und Du/Sie an die Mail an.
+
+<mail>
+Von: ${mail.from}
+Betreff: ${mail.subject}
+
+${content}
+</mail>`;
   await streamReply(apiKey, [{ role: "user", content: prompt }], onText);
 }

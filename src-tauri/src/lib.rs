@@ -20,6 +20,22 @@ async fn mac_unread_mails(max: u32) -> Result<Vec<mac_mail::MacMail>, String> {
         .map_err(|e| e.to_string())?
 }
 
+#[cfg(target_os = "macos")]
+#[tauri::command]
+async fn mac_mail_content(id: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || mac_mail::content(&id))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[cfg(target_os = "macos")]
+#[tauri::command]
+async fn mac_open_reply(id: String, text: String) -> Result<bool, String> {
+    tauri::async_runtime::spawn_blocking(move || mac_mail::open_reply(&id, &text))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default()
@@ -29,7 +45,12 @@ pub fn run() {
         .plugin(tauri_plugin_oauth::init());
 
     #[cfg(target_os = "macos")]
-    let builder = builder.invoke_handler(tauri::generate_handler![mac_events_for_day, mac_unread_mails]);
+    let builder = builder.invoke_handler(tauri::generate_handler![
+        mac_events_for_day,
+        mac_unread_mails,
+        mac_mail_content,
+        mac_open_reply
+    ]);
 
     builder
         .run(tauri::generate_context!())

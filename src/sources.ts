@@ -2,7 +2,7 @@ import { getSetting, setSetting } from "./settings";
 import { isGoogleConnected } from "./google/auth";
 import { getEventsForDay, type CalendarEvent } from "./google/calendar";
 import { getRecentUnread, type MailSummary } from "./google/gmail";
-import { getMacEventsForDay, getMacUnreadMails } from "./mac";
+import { getMacEventsForDay, getMacMailContent, getMacUnreadMails } from "./mac";
 
 // Woher Termine und Mails kommen: direkt vom Mac (Standard) oder über Google.
 export type Source = "mac" | "google";
@@ -38,4 +38,14 @@ export async function loadToday(source: Source): Promise<TodayData> {
     mails: mails.status === "fulfilled" ? mails.value : [],
     warnings,
   };
+}
+
+export async function loadMails(source: Source, max = 25): Promise<MailSummary[]> {
+  return source === "mac" ? getMacUnreadMails(max) : getRecentUnread(max);
+}
+
+// Voller Text für Antwortentwürfe; über Google reicht vorerst der Textauszug.
+export async function loadMailContent(source: Source, mail: MailSummary): Promise<string> {
+  if (source === "google") return mail.snippet;
+  return (await getMacMailContent(mail.id)) || mail.snippet;
 }

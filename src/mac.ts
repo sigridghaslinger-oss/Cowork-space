@@ -17,3 +17,12 @@ export async function getMacUnreadMails(max = 15): Promise<MailSummary[]> {
   const raw = await invoke<RawMail[]>("mac_unread_mails", { max });
   return raw.map((m) => ({ ...m, from: m.from.replace(/\s*<.*>$/, "").replace(/"/g, ""), date: new Date(m.date) }));
 }
+
+export async function getMacMailContent(id: string): Promise<string> {
+  return invoke<string>("mac_mail_content", { id });
+}
+
+// Öffnet ein Antwortfenster in Apple Mail. Gibt false zurück, wenn der Text nicht eingesetzt werden konnte.
+export async function openMacReply(id: string, text: string): Promise<boolean> {
+  return invoke<boolean>("mac_open_reply", { id, text });
+}
