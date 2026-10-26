@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- Mit „Hardened Runtime“ lehnt macOS den Kalender sonst ab, ohne nachzufragen. -->
+  <key>com.apple.security.personal-information.calendars</key>
+  <true/>
+  <!-- Steuerung von Mail und Erinnerungen per Apple Events. -->
+  <key>com.apple.security.automation.apple-events</key>
+  <true/>
+</dict>
+</plist>

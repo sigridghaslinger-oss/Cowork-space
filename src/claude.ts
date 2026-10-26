@@ -49,11 +49,19 @@ export async function streamDayPlan(
 
 ${context}
 
-Erstelle mir einen kurzen Tagesplan:
-1. Ein Ablauf des Tages mit den Terminen in zeitlicher Reihenfolge und sinnvollen Lücken für Aufgaben.
-2. Welche Mails ich heute beantworten oder erledigen sollte, je ein Satz dazu.
-3. Fällige Zahlungen oder Rechnungen, die in den Mails erwähnt werden, mit Betrag und Frist, falls genannt. Wenn keine dabei sind, schreib das.
-Schreib ohne Einleitung, mit kurzen Überschriften.`;
+Erstelle mir einen kurzen Tagesplan. Halte dich genau an dieses Format, ohne Einleitung und ohne Schlusssatz:
+
+## 🕐 Ablauf
+- **08:00–08:50** Termin oder Aufgabe, kurz
+(alle Termine in zeitlicher Reihenfolge, dazwischen sinnvolle Lücken für fällige Erinnerungen und Aufgaben)
+
+## ✉️ Mails erledigen
+- **Absender**: was zu tun ist, ein kurzer Satz
+(nur Mails, die heute wirklich wichtig sind; sonst eine Zeile „Heute nichts Dringendes.“)
+
+## 💶 Zahlungen
+- **Betrag** wofür, Frist
+(Rechnungen oder Zahlungen aus den Mails; wenn keine dabei sind, eine Zeile „Keine fälligen Zahlungen.“)`;
   await streamReply(apiKey, [{ role: "user", content: prompt }], onText);
 }
 

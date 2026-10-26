@@ -30,6 +30,9 @@ jobs:
       # Universal-Build läuft auf Apple-Silicon- und Intel-Macs.
       - run: npx tauri build --target universal-apple-darwin
 
+      # Prüft, dass die Kalender-Berechtigung wirklich in der App steckt.
+      - run: codesign -d --entitlements - src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app 2>&1 | tee /dev/stderr | grep -q personal-information.calendars
+
       - uses: actions/upload-artifact@v4
         with:
           name: Cowork-Space-mac

@@ -303,3 +303,50 @@ table.grades.limits input { width: 90px; padding: 6px 8px; }
 .reminder { display: flex; gap: 10px; align-items: flex-start; }
 .reminder input { width: auto; margin-top: 3px; accent-color: var(--accent); }
 .list .meta.overdue { color: var(--danger); }
+
+/* Heute: Kacheln, die ihren Inhalt darunter öffnen */
+.today > .card { margin-top: 14px; border-radius: 6px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-top: 14px; }
+.content button.tile {
+  display: flex; flex-direction: column; align-items: stretch; gap: 6px; text-align: left;
+  padding: 14px 16px; min-height: 112px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--panel); box-shadow: var(--shadow); cursor: pointer;
+}
+.content button.tile:hover { border-color: var(--accent); }
+.content button.tile.active { border: 2px solid var(--accent); background: var(--accent-soft); padding: 13px 15px; }
+.tile-head { display: flex; justify-content: space-between; align-items: center; }
+.tile-icon { font-size: 20px; }
+.tile-count { font-size: 22px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.tile-title { font-weight: 600; font-size: 14px; color: var(--text); }
+.tile-preview { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile-panel { border-radius: 6px; }
+.tile-panel > .row { gap: 16px; align-items: flex-start; }
+
+.events > li { display: flex; gap: 14px; align-items: baseline; }
+.event-time { flex: 0 0 96px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); }
+.week { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.week-day { background: var(--panel-soft); border-radius: 12px; padding: 12px 14px; }
+.week-day.today { outline: 2px solid var(--accent); }
+.week-day h4 { margin: 0 0 8px; font-size: 13px; }
+.week-day .events > li { flex-direction: column; gap: 0; }
+.week-day .event-time { flex: none; font-size: 12px; }
+
+/* Mailtext */
+.mails-today > li { padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.mails-today > li:last-child { border-bottom: none; padding-bottom: 0; }
+.mail-line { display: flex; gap: 8px; align-items: baseline; }
+.mail-body { margin-top: 4px; }
+.card .mail-snippet { font-size: 13px; line-height: 1.5; color: var(--muted); }
+.mail-full { white-space: pre-wrap; font-size: 13px; line-height: 1.55; max-height: 360px; overflow-y: auto; background: var(--panel-soft); border-radius: 10px; padding: 10px 12px; margin-top: 6px; }
+.content button.ghost.link { padding: 4px 0; font-size: 13px; }
+
+/* Tagesplan als Kacheln */
+.md { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-top: 14px; }
+.plan-section { background: var(--accent-soft); border-radius: 6px; padding: 14px 16px; font-size: 14px; line-height: 1.5; }
+.plan-section h4 { margin: 0 0 8px; font-size: 15px; }
+.plan-section ul, .plan-section ol { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.plan-section strong { color: var(--accent); }
+.plan-section p { margin: 0; color: var(--text); }
+@media (prefers-color-scheme: dark) {
+  .plan-section { background: color-mix(in srgb, var(--accent-soft) 15%, var(--panel)); }
+}
