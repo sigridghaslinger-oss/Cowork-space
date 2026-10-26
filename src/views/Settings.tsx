@@ -7,6 +7,7 @@ import {
   isGoogleConnected,
   setGoogleClient,
 } from "../google/auth";
+import { getSource, setSource as saveSource, type Source } from "../sources";
 
 export default function Settings() {
   const [key, setKey] = useState("");
@@ -16,6 +17,7 @@ export default function Settings() {
   const [googleConnected, setGoogleConnected] = useState(false);
   const [googleBusy, setGoogleBusy] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
+  const [source, setSource] = useState<Source>("mac");
 
   useEffect(() => {
     getApiKey().then((k) => setKey(k ?? ""));
@@ -24,7 +26,13 @@ export default function Settings() {
       setClientSecret(c?.clientSecret ?? "");
     });
     isGoogleConnected().then(setGoogleConnected);
+    getSource().then(setSource);
   }, []);
+
+  async function chooseSource(next: Source) {
+    setSource(next);
+    await saveSource(next);
+  }
 
   async function save() {
     await setApiKey(key);
@@ -75,6 +83,31 @@ export default function Settings() {
       </button>
       {saved && <span className="hint"> Gespeichert.</span>}
 
+      <h3 className="section">Termine und Mails</h3>
+      <div className="choice">
+        <label className={source === "mac" ? "selected" : ""}>
+          <input type="radio" name="source" checked={source === "mac"} onChange={() => chooseSource("mac")} />
+          <span>
+            <strong>Vom Mac</strong>
+            <small>Mail- und Kalender-App mit allen dort eingerichteten Konten (empfohlen)</small>
+          </span>
+        </label>
+        <label className={source === "google" ? "selected" : ""}>
+          <input type="radio" name="source" checked={source === "google"} onChange={() => chooseSource("google")} />
+          <span>
+            <strong>Über Google</strong>
+            <small>Gmail und Google Kalender direkt, braucht einen Google-Zugang</small>
+          </span>
+        </label>
+      </div>
+      {source === "mac" && (
+        <p className="hint">
+          Beim ersten Laden fragt dein Mac, ob Cowork Space auf Kalender und Mail zugreifen darf. Bitte erlauben.
+        </p>
+      )}
+
+      {source === "google" && (
+      <>
       <h3 className="section">Google (Gmail und Kalender)</h3>
       {googleConnected ? (
         <>
@@ -98,6 +131,8 @@ export default function Settings() {
         </>
       )}
       {googleError && <p className="error">{googleError}</p>}
+      </>
+      )}
     </section>
   );
 }

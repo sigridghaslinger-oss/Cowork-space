@@ -3,9 +3,10 @@
 Eine Mac-App, in der Claude beim Arbeitsalltag hilft: Mails im Blick behalten, Mails entwerfen und zusammenfassen,
 Tagesplanung mit Terminen und Stundenplan, Erinnerungen an Zahlungen und Notizen bearbeiten.
 
-## Stand (Version 0.2)
+## Stand (Version 0.3)
 
-- **Heute:** Termine aller Google-Kalender (auch ein eigener Stundenplan-Kalender) und ungelesene Gmail-Mails.
+- **Heute:** Termine und ungelesene Mails, standardmäßig direkt aus der Kalender- und Mail-App des Macs
+  (alle dort eingerichteten Konten: iCloud, Gmail, Outlook …). Alternativ über Google.
   Ein Klick auf **Tagesplan erstellen** lässt Claude den Tag planen und an fällige Zahlungen aus den Mails erinnern.
 - **Chat:** Unterhaltung mit Claude, Antworten erscheinen live.
 - **Einstellungen:** API-Schlüssel von Anthropic hinterlegen (wird nur lokal auf dem Mac gespeichert).
@@ -19,9 +20,17 @@ Tagesplanung mit Terminen und Stundenplan, Erinnerungen an Zahlungen und Notizen
    **Systemeinstellungen → Datenschutz & Sicherheit** auf **Trotzdem öffnen** klicken.
 5. In der App unter **Einstellungen** den API-Schlüssel von [console.anthropic.com](https://console.anthropic.com) eintragen.
 
-## Google verbinden (Gmail und Kalender)
+## Mail und Kalender vom Mac (empfohlen)
 
-Damit die App deine Mails und Termine lesen darf, legst du einmalig bei Google einen eigenen Zugang an.
+Unter **Einstellungen → Termine und Mails** ist **Vom Mac** voreingestellt. Beim ersten Öffnen von **Heute** fragt macOS,
+ob Cowork Space auf deine Kalender und die Mail-App zugreifen darf. Bitte beides erlauben.
+
+Falls du versehentlich abgelehnt hast: **Systemeinstellungen → Datenschutz & Sicherheit → Kalender** bzw.
+**→ Automation → Cowork Space → Mail** einschalten. Benötigt macOS 14 (Sonoma) oder neuer.
+
+## Optional: Google verbinden (Gmail und Kalender)
+
+Nur nötig, wenn du unter **Einstellungen** die Quelle **Über Google** wählst. Damit die App deine Mails und Termine lesen darf, legst du einmalig bei Google einen eigenen Zugang an.
 Die App liest nur, sie verschickt, löscht oder ändert nichts.
 
 1. Öffne [console.cloud.google.com](https://console.cloud.google.com) und melde dich mit deinem Google-Konto an.

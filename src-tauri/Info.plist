@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>NSCalendarsFullAccessUsageDescription</key>
+  <string>Cowork Space zeigt deine Termine und deinen Stundenplan in der Tagesübersicht an.</string>
+  <key>NSCalendarsUsageDescription</key>
+  <string>Cowork Space zeigt deine Termine und deinen Stundenplan in der Tagesübersicht an.</string>
+  <key>NSAppleEventsUsageDescription</key>
+  <string>Cowork Space liest ungelesene Mails aus der Mail-App, damit Claude sie zusammenfassen kann.</string>
+</dict>
+</plist>
