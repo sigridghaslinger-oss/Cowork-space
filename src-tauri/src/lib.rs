@@ -1,3 +1,4 @@
+mod downloads;
 #[cfg(target_os = "macos")]
 mod mac_calendar;
 #[cfg(target_os = "macos")]
@@ -46,6 +47,13 @@ async fn mac_capture_window(app_name: String) -> Result<String, String> {
         .map_err(|e| e.to_string())?
 }
 
+#[tauri::command]
+async fn save_download(app: tauri::AppHandle, filename: String, data: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || downloads::save(&app, &filename, &data))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default()
@@ -56,12 +64,15 @@ pub fn run() {
 
     #[cfg(target_os = "macos")]
     let builder = builder.invoke_handler(tauri::generate_handler![
+        save_download,
         mac_events_for_day,
         mac_unread_mails,
         mac_mail_content,
         mac_open_reply,
         mac_capture_window
     ]);
+    #[cfg(not(target_os = "macos"))]
+    let builder = builder.invoke_handler(tauri::generate_handler![save_download]);
 
     builder
         .run(tauri::generate_context!())

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { classbookFromScreens, type WeekEntry } from "../claude";
 import { base64ToBlob, imageToJpeg } from "../images";
 import { captureMacWindow } from "../mac";
+import { openPlanbuch } from "../planbuch/db";
 import { getApiKey, getSetting, setSetting } from "../settings";
 
 const APP_NAME = "Mein Schulplan";
@@ -9,6 +10,54 @@ const STORE_KEY = "klassenbuch-woche";
 
 type Entry = WeekEntry & { done: boolean };
 type Saved = { erstellt: string; entries: Entry[]; hinweise: string };
+
+const DAYNAMES = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag"];
+const pad = (n: number) => String(n).padStart(2, "0");
+const ymd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+function mondayOf(offsetWeeks: number): Date {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + offsetWeeks * 7);
+  return d;
+}
+
+type PlanSettings = {
+  classes?: { id: string; name: string; subject?: string }[];
+  holidays?: { from: string; to: string }[];
+};
+
+// Liest die geplanten Stunden einer Woche aus dem Planbuch: je Stunde das Thema als Eintrag.
+async function entriesFromPlanbuch(monday: Date): Promise<Entry[]> {
+  const db = await openPlanbuch();
+  const settings = (db.get("plan/settings") ?? {}) as PlanSettings;
+  const days = [0, 1, 2, 3, 4].map((i) => {
+    const d = new Date(monday);
+    d.setDate(d.getDate() + i);
+    return ymd(d);
+  });
+  const isHoliday = (day: string) => (settings.holidays ?? []).some((h) => day >= h.from && day <= h.to);
+  type Lesson = { date: string; period: number; classId: string; topic?: string; status?: string };
+  return db
+    .all("lessons")
+    .map((l) => l.data as unknown as Lesson)
+    .filter((l) => days.includes(l.date) && !isHoliday(l.date) && l.topic?.trim() && l.status !== "entfaellt" && l.status !== "frei")
+    .sort((a, b) => (a.date === b.date ? a.period - b.period : a.date < b.date ? -1 : 1))
+    .map((l) => {
+      const c = settings.classes?.find((x) => x.id === l.classId);
+      const [, m, d] = l.date.split("-").map(Number);
+      return {
+        tag: DAYNAMES[days.indexOf(l.date)],
+        datum: `${d}.${m}.`,
+        stunde: `${l.period}.`,
+        klasse: c?.name ?? "",
+        fach: c?.subject ?? "",
+        eintrag: l.topic!.trim(),
+        unsicher: false,
+        done: false,
+      };
+    });
+}
 
 // Wochenansicht aus „Mein Schulplan“ abfotografieren, Claude schreibt die Klassenbucheinträge.
 export default function Week() {
@@ -38,6 +87,21 @@ export default function Week() {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(null);
+    }
+  }
+
+  async function fromPlanbuch(offsetWeeks: number) {
+    setError(null);
+    try {
+      const monday = mondayOf(offsetWeeks);
+      const entries = await entriesFromPlanbuch(monday);
+      if (entries.length === 0) {
+        setError("In dieser Woche stehen im Planbuch keine Stunden mit Thema.");
+        return;
+      }
+      await persist({ erstellt: new Date().toISOString(), entries, hinweise: "" });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
     }
   }
 
@@ -96,7 +160,17 @@ export default function Week() {
   return (
     <>
       <article className="card">
-        <h3>Woche aus Mein Schulplan</h3>
+        <h3>Klassenbuch für eine Woche</h3>
+        <p className="hint">Am schnellsten: Die Themen kommen direkt aus deinem Planbuch.</p>
+        <div className="actions">
+          <button className="primary" onClick={() => fromPlanbuch(0)} disabled={busy !== null}>
+            Diese Woche aus dem Planbuch
+          </button>
+          <button onClick={() => fromPlanbuch(-1)} disabled={busy !== null}>
+            Letzte Woche aus dem Planbuch
+          </button>
+        </div>
+        <h4>Oder aus Mein Schulplan</h4>
         <ol className="steps">
           <li>Öffne „{APP_NAME}“ in der Wochenansicht und mach das Fenster groß.</li>
           <li>Klicke auf „Abfotografieren“. Ist die Woche zu lang, scroll weiter und fotografiere nochmal.</li>
@@ -110,7 +184,7 @@ export default function Week() {
             Bild hinzufügen
             <input type="file" accept="image/*" multiple onChange={(e) => addFiles(e.target.files)} />
           </label>
-          <button className="primary" onClick={write} disabled={busy !== null || shots.length === 0}>
+          <button onClick={write} disabled={busy !== null || shots.length === 0}>
             {busy === "write" ? "Claude schreibt…" : "Einträge erstellen"}
           </button>
         </div>

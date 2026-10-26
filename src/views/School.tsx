@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import Chat, { type ChatState } from "./Chat";
 import Rubric from "./Rubric";
 import Week from "./Week";
+import Planbuch from "./Planbuch";
 import type { Area, AreaId } from "../areas";
 import type { CalendarEvent } from "../google/calendar";
 import type { MailSummary } from "../google/gmail";
@@ -23,9 +24,10 @@ import {
   type Exam,
 } from "../school/exams";
 
-type Tab = "overview" | "exams" | "rubric" | "classbook" | "chat";
+type Tab = "planbuch" | "overview" | "exams" | "rubric" | "classbook" | "chat";
 
 const TABS: { id: Tab; label: string }[] = [
+  { id: "planbuch", label: "Planbuch" },
   { id: "overview", label: "Überblick" },
   { id: "exams", label: "Schularbeiten" },
   { id: "rubric", label: "Bewerten" },
@@ -42,7 +44,7 @@ type Props = {
 };
 
 export default function School({ area, chat, setChat }: Props) {
-  const [tab, setTab] = useState<Tab>("overview");
+  const [tab, setTab] = useState<Tab>("planbuch");
   const [exams, setExams] = useState<Exam[]>([]);
 
   useEffect(() => {
@@ -68,6 +70,7 @@ export default function School({ area, chat, setChat }: Props) {
           </button>
         ))}
       </div>
+      {tab === "planbuch" && <Planbuch />}
       {tab === "overview" && <Overview exams={exams} onOpenExams={() => setTab("exams")} />}
       {tab === "exams" && <Exams exams={exams} onChange={updateExams} />}
       {tab === "rubric" && <Rubric />}

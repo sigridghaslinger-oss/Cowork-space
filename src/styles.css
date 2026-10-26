@@ -283,3 +283,6 @@ table.grades.limits input { width: 90px; padding: 6px 8px; }
 .week-entry textarea { width: 100%; min-height: 0; margin: 6px 0 8px; box-sizing: border-box; }
 .week-entry .actions .check { margin: 0; }
 .week-meta { font-size: 13px; font-weight: 600; display: flex; gap: 8px; align-items: center; }
+
+/* Planbuch */
+.planbuch-frame { width: 100%; height: calc(100vh - 190px); min-height: 520px; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
