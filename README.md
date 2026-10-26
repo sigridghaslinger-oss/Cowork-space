@@ -3,7 +3,7 @@
 Eine Mac-App, in der Claude beim Arbeitsalltag hilft: Mails im Blick behalten, Mails entwerfen und zusammenfassen,
 Tagesplanung mit Terminen und Stundenplan, Erinnerungen an Zahlungen und Notizen bearbeiten.
 
-## Stand (Version 0.5)
+## Stand (Version 0.6)
 
 - **Heute:** Termine und ungelesene Mails, standardmäßig direkt aus der Kalender- und Mail-App des Macs
   (alle dort eingerichteten Konten: iCloud, Gmail, Outlook …). Alternativ über Google.
@@ -14,6 +14,7 @@ Tagesplanung mit Terminen und Stundenplan, Erinnerungen an Zahlungen und Notizen
   Verschickt wird nur, was du selbst abschickst.
 - **Schule:** eigene Arbeitsfläche mit **Überblick** (heutige Stunden, Schul-Mails, Korrekturfristen),
   **Schularbeiten** (Fortschritt, Korrekturplan von Claude passend zum Kalender, Notenschlüssel-Rechner),
+  **Bewerten** (Notenschlüssel der 1. Deutsch-Schularbeit 4. Klasse, Diagrammbeschreibung: Elemente ankreuzen, Wörter und Fehler eintragen, Note mit Tendenz; Arbeiten nur mit Nummer gespeichert, Liste für Excel kopierbar),
   **Klassenbuch & Planung** (aus Stichworten einen Klassenbucheintrag und eine Stundenplanung formulieren) und Chat.
   Schülernamen werden nicht an Claude geschickt.
   Tipp: Den EduPage-Stundenplan als Kalender-Abo (iCal) in die Kalender-App einfügen, dann erscheint er automatisch.

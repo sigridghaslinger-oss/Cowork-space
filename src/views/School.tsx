@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import Chat, { type ChatState } from "./Chat";
+import Rubric from "./Rubric";
 import type { Area, AreaId } from "../areas";
 import type { CalendarEvent } from "../google/calendar";
 import type { MailSummary } from "../google/gmail";
@@ -21,11 +22,12 @@ import {
   type Exam,
 } from "../school/exams";
 
-type Tab = "overview" | "exams" | "classbook" | "chat";
+type Tab = "overview" | "exams" | "rubric" | "classbook" | "chat";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "overview", label: "Überblick" },
   { id: "exams", label: "Schularbeiten" },
+  { id: "rubric", label: "Bewerten" },
   { id: "classbook", label: "Klassenbuch & Planung" },
   { id: "chat", label: "Chat" },
 ];
@@ -67,6 +69,7 @@ export default function School({ area, chat, setChat }: Props) {
       </div>
       {tab === "overview" && <Overview exams={exams} onOpenExams={() => setTab("exams")} />}
       {tab === "exams" && <Exams exams={exams} onChange={updateExams} />}
+      {tab === "rubric" && <Rubric />}
       {tab === "classbook" && <Classbook />}
       {tab === "chat" && <Chat area={area} chat={chat} setChat={setChat} hideTitle />}
     </section>

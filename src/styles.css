@@ -122,7 +122,7 @@ section > .row { margin-bottom: 20px; }
 .field { display: flex; flex-direction: column; gap: 6px; max-width: 440px; font-size: 14px; }
 .field + .field { margin-top: 12px; }
 h3.section { margin-top: 36px; }
-input, textarea {
+input, textarea, select {
   font: inherit;
   padding: 10px 12px;
   border: 1px solid var(--border);
@@ -131,7 +131,7 @@ input, textarea {
   color: var(--text);
   outline: none;
 }
-input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+input:focus, textarea:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 
 button.primary {
   padding: 9px 18px;
@@ -238,3 +238,15 @@ table.grades { border-collapse: collapse; font-size: 14px; }
 table.grades td { padding: 6px 16px 6px 0; border-bottom: 1px solid var(--border); }
 .plan-text.output { margin-top: 14px; padding: 14px; background: var(--panel-soft); border-radius: 12px; }
 section > .card + .card { margin-top: 16px; }
+
+/* Bewerten */
+.card h4 { margin: 16px 0 8px; font-size: 14px; }
+.rubric-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+.rubric-cols select { width: 100%; }
+.rubric-group { margin-bottom: 8px; }
+.rubric-group-title { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+.rubric-group .check { margin-bottom: 4px; }
+.rubric-result .rubric-note { font-size: 22px; font-weight: 600; margin: 12px 0 6px; }
+.rubric-result .actions { margin-top: 12px; }
+.rubric-cols .hint, .rubric-result .hint { margin: 6px 0; }
+.rubric-top { margin-top: 14px; }
