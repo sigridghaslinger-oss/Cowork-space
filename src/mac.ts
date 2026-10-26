@@ -31,3 +31,48 @@ export async function openMacReply(id: string, text: string): Promise<boolean> {
 export async function captureMacWindow(appName: string): Promise<string> {
   return invoke<string>("mac_capture_window", { appName });
 }
+
+// Posteingang fürs Aufräumen: neueste Mails mit Status (gelesen, beantwortet, Fähnchen), ohne Inhalt.
+export type InboxMail = {
+  id: string;
+  from: string;
+  address: string;
+  subject: string;
+  date: Date;
+  read: boolean;
+  replied: boolean;
+  flagged: boolean;
+};
+export type InboxOverview = { total: number; unread: number; mails: InboxMail[] };
+
+type RawInboxMail = Omit<InboxMail, "from" | "address" | "date"> & { sender: string; date: number };
+
+export async function getMacInbox(max = 1500): Promise<InboxOverview> {
+  const raw = await invoke<{ total: number; unread: number; mails: RawInboxMail[] }>("mac_inbox_overview", { max });
+  return {
+    ...raw,
+    mails: raw.mails.map(({ sender, date, ...m }) => {
+      const address = (sender.match(/<([^>]+)>/)?.[1] ?? sender).trim().toLowerCase();
+      const from = sender.replace(/\s*<.*>$/, "").replace(/"/g, "").trim() || address;
+      return { ...m, from, address, date: new Date(date) };
+    }),
+  };
+}
+
+// Die folgenden Aktionen ändern Mails in Apple Mail. Sie werden nur nach Sigrids Bestätigung aufgerufen.
+export async function markMacRead(ids: string[]): Promise<number> {
+  return invoke<number>("mac_mark_read", { ids });
+}
+
+export async function setMacFlag(ids: string[], flagged: boolean): Promise<number> {
+  return invoke<number>("mac_set_flag", { ids, flagged });
+}
+
+// Verschiebt ins Archiv des jeweiligen Kontos; skipped = Konten ohne Archiv-Ordner.
+export async function archiveMac(ids: string[]): Promise<{ moved: number; skipped: number }> {
+  return invoke("mac_archive", { ids });
+}
+
+export async function getMacUnsubscribeLink(id: string): Promise<string | null> {
+  return invoke<string | null>("mac_unsubscribe_link", { id });
+}

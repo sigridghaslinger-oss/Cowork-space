@@ -286,3 +286,14 @@ table.grades.limits input { width: 90px; padding: 6px 8px; }
 
 /* Planbuch */
 .planbuch-frame { width: 100%; height: calc(100vh - 190px); min-height: 520px; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
+
+/* Mails → Aufräumen */
+.cleanup .card { margin-bottom: 16px; }
+.cleanup .card h3 { margin-top: 0; }
+.cleanup-item { font-size: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 6px 0; }
+.cleanup-item > div:first-child, .cleanup-item > span:first-child { min-width: 0; flex: 1; }
+.cleanup-list > li + li { border-top: 1px solid var(--border); padding-top: 12px; }
+.cleanup .pill { background: var(--border); color: var(--muted); margin-left: 6px; }
+.confirm { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; }
+.note { background: #eef6ee; color: #2f5d34; padding: 8px 12px; border-radius: 8px; font-size: 14px; }
+.cleanup-item select { width: auto; padding: 2px 6px; margin: 0 2px; }
