@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { classbookFromScreens, type WeekEntry } from "../claude";
 import { base64ToBlob, imageToJpeg } from "../images";
 import { captureMacWindow } from "../mac";
+import { isMac } from "../platform";
 import { openPlanbuch } from "../planbuch/db";
 import { getApiKey, getSetting, setSetting } from "../settings";
 
@@ -171,15 +172,25 @@ export default function Week() {
           </button>
         </div>
         <h4>Oder aus Mein Schulplan</h4>
-        <ol className="steps">
-          <li>Öffne „{APP_NAME}“ in der Wochenansicht und mach das Fenster groß.</li>
-          <li>Klicke auf „Abfotografieren“. Ist die Woche zu lang, scroll weiter und fotografiere nochmal.</li>
-          <li>Klicke auf „Einträge erstellen“.</li>
-        </ol>
+        {isMac ? (
+          <ol className="steps">
+            <li>Öffne „{APP_NAME}“ in der Wochenansicht und mach das Fenster groß.</li>
+            <li>Klicke auf „Abfotografieren“. Ist die Woche zu lang, scroll weiter und fotografiere nochmal.</li>
+            <li>Klicke auf „Einträge erstellen“.</li>
+          </ol>
+        ) : (
+          <ol className="steps">
+            <li>Öffne „{APP_NAME}“ in der Wochenansicht und mach ein Bildschirmfoto (obere Taste und Lauter-Taste gleichzeitig).</li>
+            <li>Tippe auf „Bild hinzufügen“ und wähle das Foto aus.</li>
+            <li>Tippe auf „Einträge erstellen“.</li>
+          </ol>
+        )}
         <div className="actions">
-          <button onClick={capture} disabled={busy !== null}>
-            {busy === "capture" ? "Fotografiert…" : `${APP_NAME} abfotografieren`}
-          </button>
+          {isMac && (
+            <button onClick={capture} disabled={busy !== null}>
+              {busy === "capture" ? "Fotografiert…" : `${APP_NAME} abfotografieren`}
+            </button>
+          )}
           <label className="file-button">
             Bild hinzufügen
             <input type="file" accept="image/*" multiple onChange={(e) => addFiles(e.target.files)} />

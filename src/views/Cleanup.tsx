@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { openLink } from "../platform";
 import { checkInbox, type SenderKind } from "../claude";
 import { archiveMac, deleteMac, getMacInbox, getMacUnsubscribeLink, markMacRead, setMacFlag, type InboxMail } from "../mac";
 import { getApiKey, getSetting, setSetting } from "../settings";
@@ -199,7 +199,7 @@ export default function Cleanup() {
         setNote(`${s.name} schickt keinen Abmelde-Link mit. Öffne eine Mail davon und such ganz unten nach „Abmelden“.`);
         return;
       }
-      await openUrl(link);
+      await openLink(link);
       setNote(
         link.startsWith("mailto:")
           ? "Apple Mail hat eine Abmelde-Mail vorbereitet. Prüfen und selbst auf Senden klicken."

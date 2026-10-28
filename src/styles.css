@@ -405,3 +405,8 @@ table.grades.spiegel .bar { display: inline-block; height: 10px; border-radius: 
 .angabe-row textarea { margin-top: 6px; }
 .file-button.disabled { opacity: 0.6; pointer-events: none; }
 .angabe-text { white-space: pre-wrap; font-size: 13px; color: var(--muted); margin: 4px 0 10px; }
+
+/* Sichern und abgleichen */
+.backup-actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0; }
+.backup-confirm { max-width: 520px; padding: 12px 14px; border: 1px solid var(--accent); border-radius: 12px; background: var(--accent-soft); font-size: 14px; }
+.backup-confirm p { margin: 0 0 8px; }

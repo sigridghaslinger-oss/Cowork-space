@@ -2,6 +2,7 @@ import { getSetting, setSetting } from "./settings";
 import { isGoogleConnected } from "./google/auth";
 import { getEventsForDay, type CalendarEvent } from "./google/calendar";
 import { getRecentUnread, type MailSummary } from "./google/gmail";
+import { isMac } from "./platform";
 import { getMacEventsForDay, getMacMailContent, getMacReminders, getMacUnreadMails, type Reminder } from "./mac";
 
 // Woher Termine und Mails kommen: direkt vom Mac (Standard) oder über Google.
@@ -24,6 +25,7 @@ export type TodayData = { events: CalendarEvent[]; mails: MailSummary[]; reminde
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 export async function loadToday(source: Source): Promise<TodayData> {
+  if (!isMac) return { events: [], mails: [], reminders: [], warnings: [] };
   const today = new Date();
   // Kalender und Mail getrennt laden, damit ein fehlender Zugriff nicht beides blockiert.
   const [events, mails, reminders] = await Promise.allSettled([
@@ -45,6 +47,7 @@ export async function loadToday(source: Source): Promise<TodayData> {
 }
 
 export async function loadMails(source: Source, max = 25): Promise<MailSummary[]> {
+  if (!isMac) return [];
   return source === "mac" ? getMacUnreadMails(max) : getRecentUnread(max);
 }
 
@@ -55,5 +58,7 @@ export async function loadMailContent(source: Source, mail: MailSummary): Promis
 }
 
 export async function loadEventsForDay(source: Source, day: Date): Promise<CalendarEvent[]> {
+  // Kalender und Mail gibt es nur in der Mac-App, im Browser (iPad) bleibt die Liste leer.
+  if (!isMac) return [];
   return source === "mac" ? getMacEventsForDay(day) : getEventsForDay(day);
 }

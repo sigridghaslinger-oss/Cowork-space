@@ -6,18 +6,24 @@ import Mails from "./views/Mails";
 import School from "./views/School";
 import Board, { hasBoard } from "./views/Board";
 import { AREAS, areaById, type AreaId } from "./areas";
+import { isMac } from "./platform";
 
 type View = "today" | "mails" | "chat" | "settings";
 
+// Heute und Mails brauchen Kalender und Mail vom Mac, im Browser (iPad) fehlen sie.
 const NAV: { id: View; label: string; icon: string }[] = [
-  { id: "today", label: "Heute", icon: "☀️" },
-  { id: "mails", label: "Mails", icon: "📬" },
+  ...(isMac
+    ? [
+        { id: "today" as const, label: "Heute", icon: "☀️" },
+        { id: "mails" as const, label: "Mails", icon: "📬" },
+      ]
+    : []),
   { id: "chat", label: "Bereich", icon: "🗂️" },
   { id: "settings", label: "Einstellungen", icon: "⚙️" },
 ];
 
 export default function App() {
-  const [view, setView] = useState<View>("today");
+  const [view, setView] = useState<View>(isMac ? "today" : "chat");
   const [areaId, setAreaId] = useState<AreaId>("schule");
   const [chats, setChats] = useState<Partial<Record<AreaId, ChatState>>>({});
 
