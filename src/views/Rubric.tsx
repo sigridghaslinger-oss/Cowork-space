@@ -57,6 +57,7 @@ type Saved = {
   suggestion?: GradeSuggestion;
   own?: string; // selbst eingetragene Note, z. B. "2−"; leer = wie vorgeschlagen
   lega?: boolean;
+  angabe?: string; // id der gewählten Angabe
 };
 
 const storeKey = (id: string) => `bewertungen:${id}`;
@@ -360,6 +361,7 @@ function Grader({ rubric }: { rubric: Rubric }) {
   const [editing, setEditing] = useState<{ klasse: string; nr: string } | null>(null);
   const [batchId, setBatchId] = useState<string | null>(null);
   const [own, setOwn] = useState("");
+  const [angabe, setAngabe] = useState("");
   const [links, setLinks] = useState<Record<string, NotenbuchLink>>({});
   const [legaMap, setLegaMap] = useState<LegaMap>({});
   const batch = useBatch(rubric.id);
@@ -391,11 +393,13 @@ function Grader({ rubric }: { rubric: Rubric }) {
   const finalGrade = parseInt(finalNote, 10);
   const noteText = `${GRADE_NAMES[finalGrade - 1]} (${finalNote})`;
   const levelLabel = rubric.levels.find((l) => l.id === level)?.label ?? "";
+  const chosenAngabe = rubric.angaben?.find((a) => a.id === angabe);
 
   const setValue = (id: string, patch: Partial<CriterionInput>) => setValues({ ...values, [id]: { ...values[id], ...patch } });
 
   function applySuggestion(s: GradeSuggestion, base = values, rr = lr) {
     setSuggestion(s);
+    if (s.angabe && rubric.angaben?.some((a) => a.id === s.angabe)) setAngabe(s.angabe);
     if (usesWords(rr) && s.words > 0) setWords(String(Math.round(s.words)));
     if (usesErrors(rr)) setErrors(fmtNote(Math.round(s.errors * 2) / 2));
     const next = { ...base };
@@ -426,6 +430,7 @@ function Grader({ rubric }: { rubric: Rubric }) {
     setValues(fresh());
     setSuggestion(null);
     setOwn("");
+    setAngabe("");
     setHint(null);
     setScanKey((k) => k + 1);
   }
@@ -446,6 +451,7 @@ function Grader({ rubric }: { rubric: Rubric }) {
     setValues(restoreValues(forLevel(rubric, lv), s.values));
     if (s.suggestion) setSuggestion(s.suggestion);
     setOwn(s.own ?? "");
+    setAngabe(s.angabe ?? "");
     setEditing({ klasse: s.klasse, nr: s.nr });
     setBatchId(null);
     if (!s.values) setHint("Diese Arbeit wurde mit einer älteren Version gespeichert. Bitte die Kriterien noch einmal anhaken.");
@@ -458,6 +464,7 @@ function Grader({ rubric }: { rubric: Rubric }) {
     setKlasse(item.klasse);
     setNr(item.nr);
     setLevel(item.level);
+    setAngabe(item.angabe ?? "");
     const rr = forLevel(rubric, item.level);
     if (item.suggestion) applySuggestion(item.suggestion, fresh(rr), rr);
     const old = saved.find((s) => s.klasse === item.klasse && s.nr === item.nr);
@@ -485,6 +492,7 @@ function Grader({ rubric }: { rubric: Rubric }) {
       grade: finalGrade,
       own: own || undefined,
       lega: lega || undefined,
+      angabe: angabe || undefined,
       words: wordCount,
       errors: errorCount,
       values,
@@ -542,8 +550,12 @@ function Grader({ rubric }: { rubric: Rubric }) {
 
   function copyList() {
     const sorted = [...saved].sort(bySeat);
-    const head = ["Klasse", "Nr.", "Niveau", ...lr.criteria.map((c) => c.name), "Gesamtwert", "Note"].join("\t");
-    const rows = sorted.map((s) => [s.klasse, s.nr, s.level, ...s.parts.map(fmtNote), fmtNote(s.gesamt), s.note].join("\t"));
+    const withAngabe = (rubric.angaben?.length ?? 0) > 0;
+    const angabeOf = (s: Saved) => (withAngabe ? [rubric.angaben!.find((x) => x.id === s.angabe)?.title ?? ""] : []);
+    const head = ["Klasse", "Nr.", "Niveau", ...(withAngabe ? ["Angabe"] : []), ...lr.criteria.map((c) => c.name), "Gesamtwert", "Note"].join("\t");
+    const rows = sorted.map((s) =>
+      [s.klasse, s.nr, s.level, ...angabeOf(s), ...s.parts.map(fmtNote), fmtNote(s.gesamt), s.note].join("\t"),
+    );
     copyText([head, ...rows].join("\n"), "Liste kopiert. In Excel oder Numbers einfügen mit ⌘V.");
   }
 
@@ -595,6 +607,19 @@ function Grader({ rubric }: { rubric: Rubric }) {
             />
             Legasthenie
           </label>
+          {(rubric.angaben?.length ?? 0) > 0 && (
+            <label className="field">
+              Angabe
+              <select value={angabe} onChange={(e) => setAngabe(e.target.value)}>
+                <option value="">{batchId || suggestion ? "nicht erkannt, bitte wählen" : "Claude erkennt sie beim Einscannen"}</option>
+                {rubric.angaben!.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           {rubric.levels.length > 1 && (
             <label className="field">
               Niveau
@@ -628,7 +653,13 @@ function Grader({ rubric }: { rubric: Rubric }) {
           </p>
         )}
 
-        {!batchId && <Scan key={scanKey} rubric={lr} levelLabel={levelLabel} lega={lega} onResult={applySuggestion} />}
+        {!batchId && <Scan key={scanKey} rubric={lr} levelLabel={levelLabel} lega={lega} angabe={angabe} onResult={applySuggestion} />}
+        {chosenAngabe && (
+          <details className="angabe-details">
+            <summary>Angabe „{chosenAngabe.title}“ ansehen</summary>
+            <p className="angabe-text">{chosenAngabe.text}</p>
+          </details>
+        )}
         {batchId && suggestion && (suggestion.hinweise || !suggestion.readable) && (
           <p className="claude-comment">
             {[suggestion.readable ? "" : "Claude konnte Teile der Arbeit nicht lesen.", suggestion.hinweise].filter(Boolean).join(" ")}
@@ -859,6 +890,7 @@ function BatchPanel({
   const [files, setFiles] = useState<{ name: string; file: ScanFile }[]>([]);
   const [klasse, setKlasse] = useState(defaultKlasse);
   const [level, setLevel] = useState(defaultLevel);
+  const [angabe, setAngabe] = useState("");
   const [startNr, setStartNr] = useState("1");
   const [perWork, setPerWork] = useState("1");
   const [busy, setBusy] = useState(false);
@@ -897,7 +929,7 @@ function BatchPanel({
     const map = await loadLega();
     addToBatch(
       rubric,
-      works.map((w, i) => ({ klasse: klasse.trim(), nr: String(start + i), level, lega: isLega(map, klasse, String(start + i)), files: w })),
+      works.map((w, i) => ({ klasse: klasse.trim(), nr: String(start + i), level, angabe, lega: isLega(map, klasse, String(start + i)), files: w })),
     );
     setStartNr(String(start + works.length));
     setFiles([]);
@@ -965,6 +997,19 @@ function BatchPanel({
                 </select>
               </label>
             )}
+            {(rubric.angaben?.length ?? 0) > 0 && (
+            <label className="field">
+              Angabe
+              <select value={angabe} onChange={(e) => setAngabe(e.target.value)}>
+                <option value="">Claude erkennt sie bei jeder Arbeit</option>
+                {rubric.angaben!.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           </div>
           <p className="hint">
             Die Dateien werden nach Namen sortiert und der Reihe nach durchnummeriert. Ein PDF pro Kind? Dann „Seiten pro Arbeit“ auf 1
@@ -1272,6 +1317,7 @@ function ClassOverview({
                     {s.lega && <span className="pill level-pill">LRS</span>}
                   </td>
                   <td>{s.level}</td>
+                  {(rubric.angaben?.length ?? 0) > 0 && <td>{rubric.angaben!.find((a) => a.id === s.angabe)?.title ?? "–"}</td>}
                   <td>{fmtNote(s.gesamt)}</td>
                   <td>{s.note}</td>
                   <td className="actions">
@@ -1292,11 +1338,13 @@ function Scan({
   rubric,
   levelLabel,
   lega,
+  angabe,
   onResult,
 }: {
   rubric: Rubric;
   levelLabel: string;
   lega: boolean;
+  angabe: string;
   onResult: (s: GradeSuggestion) => void;
 }) {
   const [files, setFiles] = useState<{ name: string; file: ScanFile }[]>([]);
@@ -1332,7 +1380,7 @@ function Scan({
     setError(null);
     setNotes(null);
     try {
-      const s = await gradeScan(apiKey, describeRubric(rubric), levelLabel, files.map((f) => f.file), lega ? LEGA_RULE : "");
+      const s = await gradeScan(apiKey, describeRubric(rubric, angabe), levelLabel, files.map((f) => f.file), lega ? LEGA_RULE : "");
       onResult(s);
       setNotes(
         [s.readable ? "" : "Claude konnte Teile der Arbeit nicht lesen.", s.hinweise].filter(Boolean).join(" ") ||

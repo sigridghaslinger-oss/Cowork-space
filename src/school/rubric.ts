@@ -43,6 +43,7 @@ export type Rubric = {
   klasse: string;
   datum: string;
   aufgabe: string; // Aufgabenstellung, hilft Claude beim Bewerten
+  angaben?: Angabe[]; // verschiedene Angaben, zwischen denen die Kinder wählen konnten
   levels: Level[];
   criteria: Criterion[];
   decisive: string; // Teilbereich, der bei Grenzfällen auf x,50 entscheidet ("" = keiner)
@@ -50,6 +51,8 @@ export type Rubric = {
   // Eigener Notenschlüssel je Niveau (Niveau-id → Kriterien). Fehlt er, gelten criteria für alle Niveaus.
   byLevel?: Record<string, LevelKey>;
 };
+
+export type Angabe = { id: string; title: string; text: string };
 
 export type LevelKey = { criteria: Criterion[]; decisive: string; knockout: string };
 
@@ -324,8 +327,17 @@ export function evaluate(r: Rubric, input: EvalInput): EvalResult {
 export const fmtNote = (n: number) => n.toLocaleString("de-DE", { maximumFractionDigits: 2 });
 
 // Lesbare Beschreibung des Schemas, z. B. für Claude.
-export function describeRubric(r: Rubric): string {
+// angabe: id der Angabe, die das Kind gewählt hat; "" = Claude soll sie erkennen.
+export function describeRubric(r: Rubric, angabe = ""): string {
   const lines = [`Schularbeit: ${r.title} (${r.klasse})`, `Aufgabenstellung: ${r.aufgabe || "nicht angegeben"}`];
+  const angaben = r.angaben ?? [];
+  const chosen = angaben.find((a) => a.id === angabe);
+  if (chosen) lines.push(`Gewählte Angabe "${chosen.title}":`, chosen.text);
+  else if (angaben.length)
+    lines.push(
+      "Die Kinder konnten zwischen diesen Angaben wählen. Erkenne, welche das Kind bearbeitet hat, und bewerte danach:",
+      ...angaben.map((a) => `--- Angabe id ${a.id}: "${a.title}"\n${a.text}`),
+    );
   lines.push(`Niveaus: ${r.levels.map((l) => `${l.label}${l.minWords ? ` (mind. ${l.minWords} Wörter)` : ""}`).join(", ")}`);
   for (const c of r.criteria) {
     lines.push("", `Teilbereich "${c.name}" (id ${c.id}, Gewicht ${c.weight}):`);

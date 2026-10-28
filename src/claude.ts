@@ -316,6 +316,7 @@ const GradeSchema = z.object({
   ),
   feedback: z.string(),
   hinweise: z.string(),
+  angabe: z.string(),
 });
 
 export type GradeSuggestion = z.infer<typeof GradeSchema>;
@@ -353,6 +354,7 @@ Vorgehen:
 - errors: Fehleranzahl nach den Zählregeln, Beistrichfehler als 0,5.${extraRule ? `\n- Wichtig: ${extraRule}` : ""}
 - criteria: für jeden Teilbereich ein Eintrag mit seiner id. Bei Checklisten die Nummern der erfüllten Elemente in checked und der zutreffenden Abzüge in deductions; failed = true nur wenn die Aufgabe verfehlt ist. Bei Einschätzungen note von 1 bis 5 in halben Schritten. Bei Checklisten und Fehlerquotient note = 0. comment: ein bis zwei Sätze Begründung.
 - feedback: drei bis vier freundliche Sätze für das Kind in der Du-Form: was gelungen ist und was es beim nächsten Mal verbessern kann.
+- angabe: Wenn oben mehrere Angaben zur Auswahl stehen, die id der Angabe, die das Kind bearbeitet hat. Sonst "".
 - hinweise: worauf Sigrid beim Nachkorrigieren achten soll (unsichere Stellen, schwer lesbare Wörter). Sonst "".
 Nenne niemals den Namen des Kindes, auch wenn er auf dem Blatt steht.`,
           },
@@ -362,6 +364,37 @@ Nenne niemals den Namen des Kindes, auch wenn er auf dem Blatt steht.`,
   }).finalMessage();
   if (response.stop_reason === "refusal") throw new Error("Claude hat diese Arbeit nicht bewertet.");
   if (!response.parsed_output) throw new Error("Claude konnte keine Bewertung erstellen.");
+  return response.parsed_output;
+}
+
+const AngabeSchema = z.object({ title: z.string(), text: z.string() });
+
+// Liest eine eingescannte Angabe (Aufgabenstellung) ab, damit sie beim Bewerten dabei ist.
+export async function readAngabe(apiKey: string, files: ScanFile[]): Promise<z.infer<typeof AngabeSchema>> {
+  const response = await client(apiKey).beta.messages.stream({
+    model: MODEL,
+    max_tokens: 16000,
+    thinking: { type: "adaptive" },
+    output_config: { effort: "low", format: betaZodOutputFormat(AngabeSchema) },
+    betas: ["server-side-fallback-2026-07-01"],
+    fallbacks: "default",
+    system: SYSTEM_PROMPT,
+    messages: [
+      {
+        role: "user",
+        content: [
+          ...scanBlocks(files),
+          {
+            type: "text",
+            text: `Das ist eine Angabe (Aufgabenstellung) für eine Schularbeit. Die Schüler:innen konnten zwischen mehreren Angaben wählen.
+- title: kurzer Name der Angabe, z. B. "Diagramm: Handynutzung" oder "Erörterung: Schuluniform".
+- text: die vollständige Aufgabenstellung wörtlich abgeschrieben. Diagramme, Bilder oder Tabellen beschreibst du mit allen Zahlen und Beschriftungen, damit man die Arbeit ohne das Blatt bewerten kann.`,
+          },
+        ],
+      },
+    ],
+  }).finalMessage();
+  if (!response.parsed_output) throw new Error("Claude konnte die Angabe nicht lesen.");
   return response.parsed_output;
 }
 
