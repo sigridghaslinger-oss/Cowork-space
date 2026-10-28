@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { getApiKey } from "../settings";
+import { readAngabe, type ScanFile } from "../claude";
+import { fileToBase64, imageToJpeg } from "../images";
 import {
   HALF_STEPS,
   KIND_LABELS,
@@ -6,6 +9,7 @@ import {
   fmtNote,
   forLevel,
   newId,
+  type Angabe,
   type Criterion,
   type LevelKey,
   type Rubric,
@@ -180,6 +184,8 @@ export default function RubricEditor({ initial, isNew, onSave, onCancel, onDelet
           Aufgabenstellung (hilft Claude beim Bewerten)
           <textarea value={r.aufgabe} onChange={(e) => set({ aufgabe: e.target.value })} />
         </label>
+
+        <Angaben list={r.angaben ?? []} onChange={(angaben) => set({ angaben })} />
 
         <h4>Niveaus</h4>
         {r.levels.map((l) => (
@@ -395,6 +401,81 @@ export default function RubricEditor({ initial, isNew, onSave, onCancel, onDelet
         <button onClick={onCancel}>Abbrechen</button>
         {onDelete && <button onClick={onDelete}>Schularbeit löschen</button>}
       </div>
+    </>
+  );
+}
+
+// Verschiedene Angaben, zwischen denen die Kinder wählen konnten. Claude liest jede eingescannte Angabe ab.
+function Angaben({ list, onChange }: { list: Angabe[]; onChange: (l: Angabe[]) => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pickKey, setPickKey] = useState(0);
+  const [open, setOpen] = useState<string | null>(null);
+
+  const update = (id: string, patch: Partial<Angabe>) => onChange(list.map((a) => (a.id === id ? { ...a, ...patch } : a)));
+
+  // Alle gewählten Dateien zusammen sind eine Angabe (z. B. zwei Seiten).
+  async function scan(files: FileList | null) {
+    if (!files?.length) return;
+    const apiKey = await getApiKey();
+    if (!apiKey) {
+      setError("Bitte hinterlege zuerst deinen API-Schlüssel unter Einstellungen.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const scans = await Promise.all(
+        Array.from(files).map(
+          async (f) =>
+            (f.type === "application/pdf"
+              ? { kind: "pdf", data: await fileToBase64(f) }
+              : { kind: "image", data: await imageToJpeg(f) }) as ScanFile,
+        ),
+      );
+      const a = await readAngabe(apiKey, scans);
+      const next = { id: newId(), title: a.title || `Angabe ${list.length + 1}`, text: a.text };
+      onChange([...list, next]);
+      setOpen(next.id);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+      setPickKey((k) => k + 1);
+    }
+  }
+
+  return (
+    <>
+      <h4>Angaben zur Auswahl</h4>
+      <p className="hint">
+        Wenn die Kinder zwischen mehreren Angaben wählen konnten: jede Angabe einzeln einscannen. Claude schreibt sie ab, und beim Bewerten wählst du
+        die jeweilige Angabe aus (oder Claude erkennt sie am Scan).
+      </p>
+      {list.map((a, i) => (
+        <div key={a.id} className="angabe-row">
+          <div className="editor-row">
+            <input value={a.title} placeholder={`Angabe ${i + 1}`} onChange={(e) => update(a.id, { title: e.target.value })} />
+            <button onClick={() => setOpen(open === a.id ? null : a.id)}>{open === a.id ? "Text zuklappen" : "Text ansehen"}</button>
+            <button onClick={() => confirm(`Angabe „${a.title}“ entfernen?`) && onChange(list.filter((x) => x.id !== a.id))}>Entfernen</button>
+          </div>
+          {open === a.id && (
+            <textarea className="tall" value={a.text} onChange={(e) => update(a.id, { text: e.target.value })} />
+          )}
+        </div>
+      ))}
+      <div className="actions">
+        <label className={busy ? "file-button disabled" : "file-button"}>
+          {busy ? "Claude liest die Angabe…" : "📄 Angabe einscannen"}
+          <input key={pickKey} type="file" multiple accept="application/pdf,image/*" disabled={busy} onChange={(e) => scan(e.target.files)} />
+        </label>
+        <button onClick={() => {
+          const next = { id: newId(), title: `Angabe ${list.length + 1}`, text: "" };
+          onChange([...list, next]);
+          setOpen(next.id);
+        }}>+ Angabe selbst eintippen</button>
+      </div>
+      {error && <p className="error">{error}</p>}
     </>
   );
 }

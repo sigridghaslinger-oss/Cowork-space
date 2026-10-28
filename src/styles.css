@@ -401,3 +401,7 @@ table.grades.spiegel .bar { display: inline-block; height: 10px; border-radius: 
 .key-pair .scan { margin-bottom: 8px; }
 .level-tabs { display: flex; gap: 8px; margin: 10px 0 4px; flex-wrap: wrap; }
 .content .level-tabs button.active { border: 2px solid var(--accent); background: var(--accent-soft); font-weight: 600; }
+.angabe-row { margin-bottom: 8px; }
+.angabe-row textarea { margin-top: 6px; }
+.file-button.disabled { opacity: 0.6; pointer-events: none; }
+.angabe-text { white-space: pre-wrap; font-size: 13px; color: var(--muted); margin: 4px 0 10px; }
