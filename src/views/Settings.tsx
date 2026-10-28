@@ -8,6 +8,8 @@ import {
   setGoogleClient,
 } from "../google/auth";
 import { getSource, setSource as saveSource, type Source } from "../sources";
+import { isMac } from "../platform";
+import BackupSection from "./Backup";
 
 export default function Settings() {
   const [key, setKey] = useState("");
@@ -76,13 +78,17 @@ export default function Settings() {
         />
       </label>
       <p className="hint">
-        Einen Schlüssel bekommst du unter console.anthropic.com. Er wird nur auf diesem Mac gespeichert.
+        Einen Schlüssel bekommst du unter console.anthropic.com. {isMac ? "Er wird nur auf diesem Mac gespeichert." : "Er wird nur auf diesem Gerät gespeichert, auch nicht in der Sicherung."}
       </p>
       <button className="primary" onClick={save} disabled={!key.trim()}>
         Speichern
       </button>
       {saved && <span className="hint"> Gespeichert.</span>}
 
+      <BackupSection />
+
+      {isMac && (
+      <>
       <h3 className="section">Termine und Mails</h3>
       <div className="choice">
         <label className={source === "mac" ? "selected" : ""}>
@@ -131,6 +137,8 @@ export default function Settings() {
         </>
       )}
       {googleError && <p className="error">{googleError}</p>}
+      </>
+      )}
       </>
       )}
     </section>

@@ -1,8 +1,8 @@
-import { load, type Store } from "@tauri-apps/plugin-store";
+import { openStore, type KeyValueStore } from "../platform";
 
 // Lokaler Speicher für das Planbuch. Das Planbuch wurde als Claude-Artifact gebaut und
 // spricht eine kleine Datenbank an (doc/collection/onSnapshot). Diese Datei bildet genau
-// diesen Teil nach und legt alles in planbuch.json im App-Ordner des Macs ab.
+// diesen Teil nach und legt alles in planbuch.json auf dem Gerät ab.
 
 type Data = Record<string, unknown>;
 type DocSnap = { id: string; exists: boolean; data: () => Data | undefined };
@@ -40,10 +40,10 @@ export class PlanbuchDb {
   private docs = new Map<string, Data>();
   private listeners = new Set<Listener>();
 
-  constructor(private store: Store) {}
+  constructor(private store: KeyValueStore) {}
 
   static async open(): Promise<PlanbuchDb> {
-    const store = await load("planbuch.json", { autoSave: 500, defaults: {} });
+    const store = await openStore("planbuch.json");
     const db = new PlanbuchDb(store);
     for (const [path, value] of await store.entries<Data>()) db.docs.set(path, value);
     return db;

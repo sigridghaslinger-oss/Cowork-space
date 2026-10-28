@@ -9,6 +9,7 @@ import type { MailSummary } from "../google/gmail";
 import type { MailSort } from "../claude";
 import { streamClassbook, streamCorrectionPlan } from "../claude";
 import { getSource, loadEventsForDay, loadMails } from "../sources";
+import { isMac } from "../platform";
 import { getApiKey, getSetting } from "../settings";
 import {
   DEFAULT_THRESHOLDS,
@@ -135,6 +136,7 @@ function Overview({ exams, onOpenExams }: { exams: Exam[]; onOpenExams: () => vo
   return (
     <>
       {note && <p className="error">{note}</p>}
+      {isMac && (
       <div className="cards">
         <article className="card">
           <h3>Heute</h3>
@@ -162,6 +164,7 @@ function Overview({ exams, onOpenExams }: { exams: Exam[]; onOpenExams: () => vo
           </ul>
         </article>
       </div>
+      )}
 
       <article className="card plan">
         <div className="row">

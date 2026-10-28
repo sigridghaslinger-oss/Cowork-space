@@ -135,6 +135,13 @@ async fn save_download(app: tauri::AppHandle, filename: String, data: String) ->
         .map_err(|e| e.to_string())?
 }
 
+#[tauri::command]
+async fn save_backup(app: tauri::AppHandle, filename: String, data: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || downloads::save_backup(&app, &filename, &data))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default()
@@ -146,6 +153,7 @@ pub fn run() {
     #[cfg(target_os = "macos")]
     let builder = builder.invoke_handler(tauri::generate_handler![
         save_download,
+        save_backup,
         mac_events_for_day,
         mac_unread_mails,
         mac_mail_content,
@@ -162,7 +170,7 @@ pub fn run() {
         mac_capture_window
     ]);
     #[cfg(not(target_os = "macos"))]
-    let builder = builder.invoke_handler(tauri::generate_handler![save_download]);
+    let builder = builder.invoke_handler(tauri::generate_handler![save_download, save_backup]);
 
     builder
         .run(tauri::generate_context!())

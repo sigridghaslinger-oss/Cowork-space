@@ -1,5 +1,5 @@
 import { useEffect, useState, type ChangeEvent } from "react";
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { openLink } from "../platform";
 import Chat, { type ChatState } from "./Chat";
 import type { Area, AreaId } from "../areas";
 import type { CalendarEvent } from "../google/calendar";
@@ -519,7 +519,7 @@ function TaskList({ data, update, field, text: labels }: PanelProps & { field: "
 
 function Homepage({ data, update }: PanelProps) {
   const set = (key: "homepageUrl" | "codeUrl") => (e: ChangeEvent<HTMLInputElement>) => update((t) => ({ ...t, [key]: e.target.value.trim() }));
-  const open = (url: string) => /^https?:\/\//.test(url) && openUrl(url);
+  const open = (url: string) => /^https?:\/\//.test(url) && openLink(url);
   return (
     <article className="card tile-panel">
       <h3>Meine Homepage</h3>
@@ -620,7 +620,7 @@ function Docs({ data, update }: PanelProps) {
         {data.unterlagen.map((d) => (
           <li key={d.id} className="reminder">
             <div className="grow">
-              <button className="ghost link" onClick={() => openUrl(d.link)}>📎 {d.titel}</button>
+              <button className="ghost link" onClick={() => openLink(d.link)}>📎 {d.titel}</button>
               <span className="meta">{d.link}</span>
             </div>
             <button className="ghost danger" title="Entfernen" onClick={() => remove(d.id)}>✕</button>

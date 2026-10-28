@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { saveFile } from "../platform";
 import { openPlanbuch } from "../planbuch/db";
 
 declare global {
@@ -13,7 +13,7 @@ window.__planbuchClaude = {
     if (name === "db") return openPlanbuch();
     if (name === "downloads")
       return {
-        save: ({ filename, data }: { filename: string; data: string }) => invoke<string>("save_download", { filename, data }),
+        save: ({ filename, data }: { filename: string; data: string }) => saveFile(filename, data),
       };
     return null;
   },
@@ -21,5 +21,5 @@ window.__planbuchClaude = {
 
 // Dein Planbuch (Woche, Jahresplan, Notenbuch, Termine) läuft unverändert in einem eigenen Rahmen.
 export default function Planbuch() {
-  return <iframe className="planbuch-frame" src="/planbuch/index.html" title="Planbuch" />;
+  return <iframe className="planbuch-frame" src="planbuch/index.html" title="Planbuch" />;
 }

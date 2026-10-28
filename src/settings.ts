@@ -1,12 +1,7 @@
-import { load, type Store } from "@tauri-apps/plugin-store";
+import { openStore } from "./platform";
 
-// Einstellungen liegen lokal im App-Ordner des Macs, nicht in der Cloud.
-let store: Store | null = null;
-
-async function getStore(): Promise<Store> {
-  if (!store) store = await load("settings.json", { autoSave: true, defaults: {} });
-  return store;
-}
+// Einstellungen liegen lokal auf dem Gerät (App-Ordner des Macs bzw. Browser), nicht in der Cloud.
+const getStore = () => openStore("settings.json");
 
 export async function getSetting<T>(key: string): Promise<T | null> {
   return (await (await getStore()).get<T>(key)) ?? null;

@@ -46,3 +46,23 @@ pub fn save(app: &tauri::AppHandle, filename: &str, data: &str) -> Result<String
     }
     Ok(path.to_string_lossy().into_owned())
 }
+
+/// Sicherungen landen in iCloud Drive im Ordner „Cowork Space“, damit das iPad sie findet.
+/// Ohne iCloud Drive geht die Datei in den Ordner „Downloads“.
+pub fn save_backup(app: &tauri::AppHandle, filename: &str, data: &str) -> Result<String, String> {
+    let icloud = app
+        .path()
+        .home_dir()
+        .map(|home| home.join("Library/Mobile Documents/com~apple~CloudDocs"))
+        .ok()
+        .filter(|dir| dir.is_dir());
+    let Some(icloud) = icloud else { return save(app, filename, data) };
+    let dir = icloud.join("Cowork Space");
+    std::fs::create_dir_all(&dir).map_err(|e| format!("Ordner in iCloud Drive konnte nicht angelegt werden: {e}"))?;
+    let path = free_path(dir, &safe_name(filename));
+    std::fs::write(&path, data).map_err(|e| format!("Sicherung konnte nicht gespeichert werden: {e}"))?;
+
+    #[cfg(target_os = "macos")]
+    let _ = std::process::Command::new("/usr/bin/open").arg("-R").arg(&path).spawn();
+    Ok(path.to_string_lossy().into_owned())
+}

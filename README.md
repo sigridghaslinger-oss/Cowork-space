@@ -32,6 +32,16 @@ Tagesplanung mit Terminen und Stundenplan, Erinnerungen an Zahlungen und Notizen
    **Systemeinstellungen → Datenschutz & Sicherheit** auf **Trotzdem öffnen** klicken.
 5. In der App unter **Einstellungen** den API-Schlüssel von [console.anthropic.com](https://console.anthropic.com) eintragen.
 
+## Auf dem iPad (Web-App)
+
+Die iPad-Version liegt unter **https://sigridghaslinger-oss.github.io/Cowork-space/** und wird bei jeder neuen Version automatisch aktualisiert (Workflow „iPad-Version veröffentlichen“).
+
+1. Den Link in Safari öffnen, auf das Teilen-Symbol tippen und **Zum Home-Bildschirm** wählen.
+2. Cowork Space vom Home-Bildschirm aus starten und unter **Einstellungen** den API-Schlüssel eintragen.
+3. Daten vom Mac holen: Am Mac unter Einstellungen **💾 Sichern** (legt die Datei in iCloud Drive → „Cowork Space“ ab), am iPad **📂 Sicherung laden**. In die andere Richtung genauso.
+
+Auf dem iPad fehlen Heute, Mails, Kalender, Erinnerungen und das Abfotografieren von „Mein Schulplan“, weil Apple dafür keinen Zugriff aus dem Browser erlaubt. Alle Daten bleiben auf dem jeweiligen Gerät; der API-Schlüssel kommt nicht in die Sicherung.
+
 ## Mail und Kalender vom Mac (empfohlen)
 
 Unter **Einstellungen → Termine und Mails** ist **Vom Mac** voreingestellt. Beim ersten Öffnen von **Heute** fragt macOS,
